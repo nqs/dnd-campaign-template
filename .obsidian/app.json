@@ -1,0 +1,16 @@
+{
+  "newLinkFormat": "shortest",
+  "useMarkdownLinks": false,
+  "attachmentFolderPath": "references",
+  "alwaysUpdateLinks": true,
+  "showLineNumber": true,
+  "readableLineLength": true,
+  "strictLineBreaks": false,
+  "pdfExportSettings": {
+    "pageSize": "Letter",
+    "landscape": false,
+    "margin": "0",
+    "downscalePercent": 75
+  },
+  "promptDelete": false
+}
