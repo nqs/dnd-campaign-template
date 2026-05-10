@@ -53,8 +53,8 @@ A reusable Obsidian vault + toolchain for running a D&D 5e campaign. Clone it, f
 ├── scripts/
 │   ├── build_pdf.py                # CLI: build session PDF
 │   ├── md_to_pdf.py                # markdown → ReportLab renderer
-│   └── extract_pdf.py              # PDF → markdown extractor
-├── transcribe.sh                   # local WhisperX wrapper
+│   ├── extract_pdf.py              # PDF → markdown extractor
+│   └── transcribe.sh               # local WhisperX wrapper
 └── .github/workflows/
     ├── transcribe.yml              # auto-transcribe audio on push
     └── test.yml                    # CI tests for transcribe.sh
@@ -121,19 +121,19 @@ Pushing any audio file to the repo triggers a GitHub Actions job that runs [Whis
 
 ### Running locally
 
-`transcribe.sh` wraps WhisperX for local use. It creates and manages a `whisper-env` virtualenv automatically.
+`scripts/transcribe.sh` wraps WhisperX for local use. It creates and manages a `whisper-env` virtualenv automatically inside the `scripts/` directory.
 
 **Prerequisites:** [pyenv](https://github.com/pyenv/pyenv) with Python 3.11.9 installed, and `ffmpeg` on your PATH.
 
 ```bash
 # Transcribe a recording; output defaults to <input>.txt
-./transcribe.sh sessions/session\ 3/recording.m4a
+./scripts/transcribe.sh sessions/session\ 3/recording.m4a
 
 # Specify an explicit output path
-./transcribe.sh recording.m4a transcripts/session3.txt
+./scripts/transcribe.sh recording.m4a transcripts/session3.txt
 ```
 
-Set `HF_TOKEN` in your environment or place your token in a file called `huggingface.token` in the repo root.
+Set `HF_TOKEN` in your environment or place your token in a file called `huggingface.token` inside the `scripts/` directory.
 
 ---
 
