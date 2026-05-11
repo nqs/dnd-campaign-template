@@ -2,7 +2,7 @@
 set -euo pipefail
 
 usage() {
-    echo "Usage: $0 <input_audio_file> [output_file]" >&2
+    echo "Usage: $0 <input_audio_file> [output_file.md]" >&2
     exit 1
 }
 
@@ -11,7 +11,7 @@ if [ $# -lt 1 ] || [ $# -gt 2 ]; then
 fi
 
 INPUT="$1"
-OUTPUT="${2:-${INPUT}.txt}"
+OUTPUT="${2:-${INPUT}.md}"
 
 if [ ! -f "$INPUT" ]; then
     echo "Error: input file '$INPUT' not found." >&2
