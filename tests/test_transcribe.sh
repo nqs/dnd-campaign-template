@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-TRANSCRIBE="$SCRIPT_DIR/../transcribe.sh"
+TRANSCRIBE="$SCRIPT_DIR/../scripts/transcribe.sh"
 
 pass=0
 fail=0
