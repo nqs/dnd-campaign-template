@@ -31,7 +31,7 @@ This agent's knowledge base is the campaign bible. Before doing anything generat
 - **`campaign/house-rules.md`** — homebrew rules and 5e variants in play *(if present)*
 - **`campaign/session-log.md`** — what's happened so far, loose ends, foreshadowing
 - **`campaign/roster.md`** — NPC roster and relationships
-- **`sessions/session <N>/`** — per-session deliverables (adventure, combat tracker, player handouts, DM quick reference, images.json, optional PDF) — at the vault root, not inside `campaign/`
+- **`sessions/session <N>/`** — per-session deliverables (adventure, combat tracker, player handouts, DM quick reference, optional PDF) — at the vault root, not inside `campaign/`. Image assets live in the `images/` subfolder: `images/images.json` (manifest) and `images/<filename>.jpg` (one file per generated image, tracked in the repo).
 - **`dnd-adventure-generator.md`** — generation workflow and rules for creating adventures and PDFs *(vault root)*
 - **`references/<sourcebook>/_raw/`** — setting reference extracted to markdown: `full.md`, `pages/page-NNNN.md`, `images/`
 
