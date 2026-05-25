@@ -21,8 +21,9 @@ from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT
 from reportlab.lib.pagesizes import LETTER
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import inch
+from reportlab.lib.utils import ImageReader
 from reportlab.platypus import (
-    Image, KeepTogether, ListFlowable, ListItem, PageBreak, Paragraph,
+    Flowable, Image, KeepTogether, ListFlowable, ListItem, PageBreak, Paragraph,
     SimpleDocTemplate, Spacer, Table, TableStyle,
 )
 from reportlab.platypus.flowables import HRFlowable
@@ -63,6 +64,8 @@ CARD_TITLE = ParagraphStyle("CardTitle", parent=H3, fontSize=13, leading=15,
     spaceBefore=0, spaceAfter=2)
 CARD_SUB = ParagraphStyle("CardSub", parent=BODY, fontName="Times-Italic",
     fontSize=9.5, leading=11, textColor=MUTED, spaceAfter=4)
+TITLE_COVER = ParagraphStyle("TitleCover", parent=H1,
+    fontSize=26, leading=32, alignment=TA_CENTER, spaceBefore=20, spaceAfter=10)
 
 # --- image cache -----------------------------------------------------------
 
@@ -97,6 +100,45 @@ def sized_image(url: str, manifest: dict, max_w_in: float = 5.5,
         h = max_h_in * inch
         w = h * aw / ah
     return Image(_fetch(url), width=w, height=h)
+
+
+class CoverImage(Flowable):
+    """Cover-page image that scales to fill all remaining vertical space on its page.
+
+    wrap() claims the full available height so Platypus places it in whatever
+    space is left after the title and info table.  draw() then scales the image
+    to fill that rectangle while preserving its aspect ratio.
+    """
+
+    def __init__(self, img_bytes: bytes, aspect_w: int, aspect_h: int,
+                 max_w_pts: float):
+        super().__init__()
+        self._bytes = img_bytes
+        self._aw = aspect_w
+        self._ah = aspect_h
+        self._max_w = max_w_pts  # upper bound on drawn width, in points
+
+    def wrap(self, availWidth, availHeight):
+        self.width = availWidth
+        self.height = max(float(availHeight), 0.0)
+        return self.width, self.height
+
+    def draw(self):
+        if self.height <= 0:
+            return
+        # Scale image to fit within (width × height) preserving aspect ratio.
+        max_w = min(self.width, self._max_w)
+        w = max_w
+        h = w * self._ah / self._aw
+        if h > self.height:
+            h = self.height
+            w = h * self._aw / self._ah
+        x = (self.width - w) / 2   # center horizontally
+        y = self.height - h         # anchor to top of allocated space
+        self.canv.drawImage(
+            ImageReader(BytesIO(self._bytes)),
+            x, y, width=w, height=h,
+        )
 
 # --- inline rendering ------------------------------------------------------
 
@@ -332,14 +374,17 @@ def _render_checkbox_strip(text: str) -> Table:
 class BlockRenderer:
     """Walk a mistune v3 AST and emit Platypus flowables for one .md file."""
 
-    def __init__(self, manifest: dict, section: str, first_h1_pagebreak: bool = False):
+    def __init__(self, manifest: dict, section: str, first_h1_pagebreak: bool = False,
+                 is_cover: bool = False):
         self.manifest = manifest
         self.section = section  # 'adventure' | 'combat-tracker' | 'player-handouts'
         self.first_h1_pagebreak = first_h1_pagebreak
+        self.is_cover = is_cover   # True for the adventure file that opens the PDF
         self.in_stat_cards = False
         self._h1_seen = False
         self._h2_seen_in_section = False
         self._after_stat_label = False
+        self._cover_img_done = False  # True once the cover image has been placed
         self.out: list = []
 
     def render(self, tokens: list) -> list:
@@ -369,13 +414,22 @@ class BlockRenderer:
         text = _inline_to_html(node.get("children", []))
         plain = _para_plain_text(node)
         if level == 1:
+            is_first_h1 = not self._h1_seen
             if self.first_h1_pagebreak or self._h1_seen:
                 self.out.append(PageBreak())
             self._h1_seen = True
             self._h2_seen_in_section = False
             if plain.strip().lower().startswith("stat cards"):
                 self.in_stat_cards = True
-            self.out.append(Paragraph(text, H1))
+            if self.is_cover and is_first_h1:
+                # Cover page: centered large title + decorative rule.
+                self.out.append(Paragraph(text, TITLE_COVER))
+                self.out.append(HRFlowable(
+                    width="100%", thickness=1.5, color=ACCENT,
+                    spaceBefore=4, spaceAfter=10,
+                ))
+            else:
+                self.out.append(Paragraph(text, H1))
         elif level == 2:
             wants_break = self.section in ("combat-tracker", "player-handouts")
             if wants_break and self._h2_seen_in_section:
@@ -489,6 +543,20 @@ class BlockRenderer:
         alt = _cell_text(img_node.get("children", []))
         if not url:
             return
+        # Cover page: first image fills the remaining vertical space on page 1,
+        # then a PageBreak pushes the adventure narrative to page 2.
+        if self.is_cover and not self._cover_img_done:
+            self._cover_img_done = True
+            _fetch(url)  # ensure bytes are cached
+            img_bytes = _bytes_cache[url]
+            info = self.manifest.get(url)
+            aw, ah = _aspect(info["aspect_ratio"]) if info else (4, 3)
+            # Content width: 8.5" page − 2 × 0.65" margins = 7.2"
+            self.out.append(Spacer(1, 6))
+            self.out.append(CoverImage(img_bytes, aw, ah, max_w_pts=7.2 * inch))
+            self.out.append(PageBreak())
+            return
+        # Normal image rendering.
         if self.section == "player-handouts":
             img = sized_image(url, self.manifest, max_w_in=6.5, max_h_in=7.5)
         else:
@@ -533,8 +601,11 @@ def build_pdf(md_files: list[str | Path], images_json: str | Path,
         text, meta = strip_frontmatter(text)
         section = _infer_section(path, meta)
         ast = parser(text)
-        renderer = BlockRenderer(manifest, section,
-                                 first_h1_pagebreak=(i > 0))
+        renderer = BlockRenderer(
+            manifest, section,
+            first_h1_pagebreak=(i > 0),
+            is_cover=(i == 0 and section == "adventure"),
+        )
         story.extend(renderer.render(ast))
     out = Path(out_path)
     doc = SimpleDocTemplate(
