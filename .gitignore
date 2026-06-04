@@ -8,7 +8,8 @@
 .trash/
 .playright-mcp/
 
-.claude/
+# Keep shared .claude/settings.json; ignore personal/local overrides
+.claude/settings.local.json
 .copilot/
 
 # Python
