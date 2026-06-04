@@ -14,10 +14,11 @@ A reusable Obsidian vault + toolchain for running a D&D 5e campaign. Clone it, f
 
 1. **Clone this repo** (or use it as a GitHub template) into a local folder.
 2. Open the folder as an Obsidian vault: **Obsidian → Open folder as vault → select this directory**.
-3. Fill in the placeholders in `campaign/` — start with `world.md`, then `party.md`.
-4. Rename `[Campaign Name]` references in `home.md` to your actual campaign name.
-5. Add sourcebook PDFs to `references/` and extract them (see [Reference material](#reference-material)).
-6. Set the `HF_TOKEN` secret (and, for speaker detection + drafted session logs, the `ANTHROPIC_API_KEY` secret) in your GitHub repo settings to enable auto-transcription (see [Transcription workflow](#transcription-workflow)).
+3. **Choose a setting** (see [Choosing a setting](#choosing-a-setting)). Pick a pre-built one from `settings/` — e.g. the Forgotten Realms — or generate a custom homebrew world.
+4. Fill in the placeholders in `campaign/` — start with `world.md`, then `party.md`.
+5. Rename `[Campaign Name]` references in `home.md` to your actual campaign name.
+6. Add more sourcebook PDFs to `references/` and extract them as needed (see [Reference material](#reference-material)).
+7. Set the `HF_TOKEN` secret (and, for speaker detection + drafted session logs, the `ANTHROPIC_API_KEY` secret) in your GitHub repo settings to enable auto-transcription (see [Transcription workflow](#transcription-workflow)).
 
 ---
 
@@ -30,7 +31,9 @@ A reusable Obsidian vault + toolchain for running a D&D 5e campaign. Clone it, f
 ├── home.md                         # vault index + Obsidian setup guide
 ├── dnd-adventure-generator.md      # adventure generation workflow
 ├── .claude/
-│   └── settings.json               # Claude Code sandbox/permission config
+│   ├── settings.json               # Claude Code sandbox/permission config
+│   └── skills/
+│       └── setup-campaign/         # skill: choose/install a setting on first setup
 ├── .gitattributes                  # Git LFS rules for audio + PDFs
 ├── campaign/
 │   ├── world.md                    # setting overview, tone, cosmology, history
@@ -51,11 +54,16 @@ A reusable Obsidian vault + toolchain for running a D&D 5e campaign. Clone it, f
 │       ├── <slug>.pdf              # built by scripts/build_pdf.py
 │       └── session <N> - log.md   # post-session write-up
 ├── references/
-│   └── <sourcebook>/
+│   └── <sourcebook>/               # populated when you install a setting
 │       └── _raw/
 │           ├── full.md             # full concatenated markdown
 │           ├── pages/              # page-NNNN.md per page
 │           └── images/             # extracted figures
+├── settings/                       # library of installable settings
+│   ├── README.md
+│   └── <slug>/                     # e.g. forgotten-realms
+│       ├── setting.md              # manifest: name, blurb, source notes
+│       └── references/             # extracts copied into ./references on install
 ├── scripts/
 │   ├── build_pdf.py                # CLI: build session PDF (+ standalone handouts)
 │   ├── md_to_pdf.py                # markdown → ReportLab renderer
@@ -71,9 +79,22 @@ A reusable Obsidian vault + toolchain for running a D&D 5e campaign. Clone it, f
 
 ---
 
+## Choosing a setting
+
+A **setting** is the reusable world canon your campaign runs in — chiefly the sourcebook reference extracts the agent treats as published canon. The `settings/` directory is a library of pre-built settings you can install, separate from your specific campaign (party, NPCs, sessions) which lives in `campaign/`.
+
+On first setup, pick one:
+
+- **A pre-built setting** — e.g. the **Forgotten Realms**, which bundles markdown extracts of the *Forgotten Realms Campaign Guide* and *Player's Guide*. Installing it copies those extracts into the top-level `references/` so the agent has canonical lore to draw on.
+- **A custom homebrew world** — generate one from scratch; the lore gets written straight into your `campaign/` bible.
+
+The easiest way is the **`setup-campaign` skill**: run `/setup-campaign` (or ask the agent to "choose a setting" / "set up my campaign") and it lists the available settings, installs the one you pick, and leaves your campaign bible blank to fill in. You can also install a setting by hand — just copy `settings/<slug>/references/*` into `references/`. See [`settings/README.md`](settings/README.md) for the library layout and how to add your own setting.
+
+---
+
 ## Reference material
 
-Sourcebook PDFs live in `references/`. The agent searches extracted markdown rather than raw PDFs, so you need to run the extractor after adding any new PDF.
+Sourcebook PDFs live in `references/`. The agent searches extracted markdown rather than raw PDFs, so you need to run the extractor after adding any new PDF. (Pre-built settings ship their extracts under `settings/<slug>/references/` and install them here — see [Choosing a setting](#choosing-a-setting).)
 
 ### Adding a sourcebook
 
