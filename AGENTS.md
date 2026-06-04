@@ -44,6 +44,8 @@ This agent's knowledge base is the campaign bible. Before doing anything generat
 
 **Vault layout.** Campaign-bible canon lives under `campaign/` (world, geography, factions, roster, party, session-log). Tooling (`AGENTS.md`, `dnd-adventure-generator.md`, `home.md`), generated session content (`sessions/session <N>/`), and reference materials (`references/` — markdown extracts of sourcebooks) sit at the vault root.
 
+**Settings library.** `settings/` holds installable, reusable world canon (pre-built sourcebook reference bundles such as the Forgotten Realms). It is *not* active campaign canon — installing a setting copies its `references/` into the vault's top-level `references/`, which is then the working source per the Source Hierarchy above. First-time setup (choosing a stored setting or generating a custom one) is handled by the `setup-campaign` skill under `.claude/skills/`. See `settings/README.md`.
+
 - **`campaign/world.md`** — setting overview, cosmology, timeline, tone
 - **`campaign/geography.md`** — regions, cities, travel distances, climate
 - **`campaign/factions.md`** — organizations, their goals, their conflicts
