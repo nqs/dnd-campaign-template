@@ -18,7 +18,7 @@ This directory holds sourcebook PDFs and their markdown extracts.
    - `references/my-sourcebook/_raw/pages/page-NNNN.md` — one file per page
    - `references/my-sourcebook/_raw/images/` — extracted figures and maps
 
-3. **Update `agents.md`** — add the sourcebook to the Source Hierarchy section so the agent knows to consult it.
+3. **Update `AGENTS.md`** — add the sourcebook to the Source Hierarchy section so the agent knows to consult it.
 
 ## Layout convention
 

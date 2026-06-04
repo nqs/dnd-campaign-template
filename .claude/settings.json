@@ -1,0 +1,12 @@
+{
+  "sandbox": {
+    "network": {
+      "allowedDomains": ["api.anthropic.com"]
+    }
+  },
+  "permissions": {
+    "allow": [
+      "WebFetch"
+    ]
+  }
+}

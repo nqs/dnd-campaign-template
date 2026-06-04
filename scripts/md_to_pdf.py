@@ -26,6 +26,7 @@ from reportlab.platypus import (
     SimpleDocTemplate, Spacer, Table, TableStyle,
 )
 from reportlab.platypus.flowables import HRFlowable
+from reportlab.pdfgen import canvas as _rl_canvas
 
 # --- colors / styles -------------------------------------------------------
 
@@ -38,15 +39,22 @@ ROW_ALT = HexColor("#f7f1e1")
 
 _ss = getSampleStyleSheet()
 H1 = ParagraphStyle("H1", parent=_ss["Heading1"], fontName="Times-Bold",
-    fontSize=18, leading=22, textColor=ACCENT, spaceBefore=14, spaceAfter=8)
+    fontSize=18, leading=22, textColor=ACCENT, spaceBefore=14, spaceAfter=8,
+    keepWithNext=1)
+H1_COVER = ParagraphStyle("H1Cover", parent=H1, alignment=TA_CENTER,
+    fontSize=24, leading=30, spaceBefore=0, spaceAfter=14, keepWithNext=1)
 H2 = ParagraphStyle("H2", parent=_ss["Heading2"], fontName="Times-Bold",
-    fontSize=14, leading=18, textColor=INK, spaceBefore=10, spaceAfter=4)
+    fontSize=14, leading=18, textColor=INK, spaceBefore=10, spaceAfter=4,
+    keepWithNext=1)
 H3 = ParagraphStyle("H3", parent=_ss["Heading3"], fontName="Times-BoldItalic",
-    fontSize=12, leading=15, textColor=ACCENT, spaceBefore=6, spaceAfter=3)
+    fontSize=12, leading=15, textColor=ACCENT, spaceBefore=6, spaceAfter=3,
+    keepWithNext=1)
 H4 = ParagraphStyle("H4", parent=_ss["Heading4"], fontName="Times-Bold",
-    fontSize=11, leading=14, textColor=INK, spaceBefore=4, spaceAfter=2)
+    fontSize=11, leading=14, textColor=INK, spaceBefore=4, spaceAfter=2,
+    keepWithNext=1)
 BODY = ParagraphStyle("Body", parent=_ss["BodyText"], fontName="Times-Roman",
-    fontSize=10.5, leading=14, textColor=INK, alignment=TA_JUSTIFY, spaceAfter=6)
+    fontSize=10.5, leading=14, textColor=INK, alignment=TA_JUSTIFY, spaceAfter=6,
+    allowWidows=0, allowOrphans=0)
 BODY_LEFT = ParagraphStyle("BodyL", parent=BODY, alignment=TA_LEFT)
 BULLET = ParagraphStyle("Bul", parent=BODY, leftIndent=30, bulletIndent=20,
     bulletFontName="Times-Roman", bulletFontSize=10, alignment=TA_LEFT, spaceAfter=2)
@@ -68,7 +76,17 @@ CARD_SUB = ParagraphStyle("CardSub", parent=BODY, fontName="Times-Italic",
 
 _bytes_cache: dict[str, bytes] = {}
 
-def _fetch(url: str) -> BytesIO:
+def _fetch(url: str, local: Path | None = None) -> BytesIO:
+    """Return image bytes, preferring a git-tracked local file over the URL.
+
+    The Gemini URLs expire after ~30 days; the local jpg (written at
+    generation time and committed to the repo) is the durable copy, so we read
+    it when present and only fall back to the network when it's missing."""
+    if local is not None and local.is_file():
+        key = local.as_posix()
+        if key not in _bytes_cache:
+            _bytes_cache[key] = local.read_bytes()
+        return BytesIO(_bytes_cache[key])
     if url not in _bytes_cache:
         req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
         with urllib.request.urlopen(req, timeout=30) as r:
@@ -80,9 +98,18 @@ def _aspect(ratio: str) -> tuple[int, int]:
     return int(a), int(b)
 
 def load_images(path: str | Path) -> dict[str, dict]:
-    """Return {url: {description, aspect_ratio}} from images.json."""
+    """Return {url: {description, aspect_ratio, file?, _path?}} from images.json.
+
+    When an entry carries a `file` key, resolve it to an absolute `_path`
+    alongside images.json so the renderer can read the local copy."""
+    images_dir = Path(path).parent
     data = json.loads(Path(path).read_text())
-    return {item["url"]: item for item in data}
+    manifest: dict[str, dict] = {}
+    for item in data:
+        if item.get("file"):
+            item["_path"] = images_dir / item["file"]
+        manifest[item["url"]] = item
+    return manifest
 
 def sized_image(url: str, manifest: dict, max_w_in: float = 5.5,
                 max_h_in: float | None = None) -> Image:
@@ -96,7 +123,39 @@ def sized_image(url: str, manifest: dict, max_w_in: float = 5.5,
     if max_h_in and h > max_h_in * inch:
         h = max_h_in * inch
         w = h * aw / ah
-    return Image(_fetch(url), width=w, height=h)
+    local = info.get("_path") if info else None
+    return Image(_fetch(url, local), width=w, height=h)
+
+# --- page geometry ---------------------------------------------------------
+
+# Page margins (kept in sync with the SimpleDocTemplate built in build_pdf).
+MARGIN_H = 0.65 * inch
+MARGIN_V = 0.6 * inch
+# SimpleDocTemplate gives its default frame 6 pt of internal padding on every
+# edge, so the usable content box is smaller than page − margins.
+FRAME_PAD = 6
+
+def _frame_content_dims() -> tuple[float, float]:
+    """(width, height) in points of the usable frame content box on Letter."""
+    page_w, page_h = LETTER
+    return (page_w - 2 * MARGIN_H - 2 * FRAME_PAD,
+            page_h - 2 * MARGIN_V - 2 * FRAME_PAD)
+
+def _flow_height(flow, avail_w: float, avail_h: float) -> float:
+    """Lay a flowable out against a scratch canvas and return its height,
+    including paragraph spaceBefore/spaceAfter so totals match frame layout."""
+    if isinstance(flow, Spacer):
+        return float(getattr(flow, "height", 0) or 0)
+    if isinstance(flow, PageBreak):
+        return 0.0
+    try:
+        _c = _rl_canvas.Canvas(BytesIO(), pagesize=LETTER)
+        _, h = flow.wrapOn(_c, avail_w, avail_h)
+    except Exception:
+        return 0.0
+    sb = getattr(getattr(flow, "style", None), "spaceBefore", 0) or 0
+    sa = getattr(getattr(flow, "style", None), "spaceAfter", 0) or 0
+    return h + sb + sa
 
 # --- inline rendering ------------------------------------------------------
 
@@ -332,19 +391,39 @@ def _render_checkbox_strip(text: str) -> Table:
 class BlockRenderer:
     """Walk a mistune v3 AST and emit Platypus flowables for one .md file."""
 
-    def __init__(self, manifest: dict, section: str, first_h1_pagebreak: bool = False):
+    def __init__(self, manifest: dict, section: str, first_h1_pagebreak: bool = False,
+                 font_scale: float = 1.0):
         self.manifest = manifest
         self.section = section  # 'adventure' | 'combat-tracker' | 'player-handouts'
         self.first_h1_pagebreak = first_h1_pagebreak
+        self.font_scale = font_scale
         self.in_stat_cards = False
         self._h1_seen = False
         self._h2_seen_in_section = False
         self._after_stat_label = False
         self.out: list = []
+        if font_scale == 1.0:
+            self.body = BODY
+            self.body_left = BODY_LEFT
+            self.bullet = BULLET
+            self.read = READ
+        else:
+            s = font_scale
+            self.body = ParagraphStyle("BodyScaled", parent=BODY,
+                fontSize=BODY.fontSize * s, leading=BODY.leading * s)
+            self.body_left = ParagraphStyle("BodyLScaled", parent=BODY_LEFT,
+                fontSize=BODY_LEFT.fontSize * s, leading=BODY_LEFT.leading * s)
+            self.bullet = ParagraphStyle("BulScaled", parent=BULLET,
+                fontSize=BULLET.fontSize * s, leading=BULLET.leading * s,
+                leftIndent=BULLET.leftIndent * s, bulletIndent=BULLET.bulletIndent * s)
+            self.read = ParagraphStyle("ReadScaled", parent=READ,
+                fontSize=READ.fontSize * s, leading=READ.leading * s)
 
     def render(self, tokens: list) -> list:
         for tok in tokens:
             self._handle(tok)
+        if self.section == "player-handouts":
+            self._finalize_player_handouts()
         return self.out
 
     # -- dispatch -----------------------------------------------------------
@@ -370,16 +449,25 @@ class BlockRenderer:
         plain = _para_plain_text(node)
         if level == 1:
             if self.first_h1_pagebreak or self._h1_seen:
-                self.out.append(PageBreak())
+                self._append_pagebreak()
+            # Use a centered, larger style for the very first H1 in the
+            # adventure section — this is the cover-page title.
+            is_cover_title = (not self._h1_seen
+                              and self.section == "adventure")
             self._h1_seen = True
             self._h2_seen_in_section = False
             if plain.strip().lower().startswith("stat cards"):
                 self.in_stat_cards = True
-            self.out.append(Paragraph(text, H1))
+            self.out.append(Paragraph(text, H1_COVER if is_cover_title else H1))
         elif level == 2:
-            wants_break = self.section in ("combat-tracker", "player-handouts")
-            if wants_break and self._h2_seen_in_section:
-                self.out.append(PageBreak())
+            # Combat-tracker encounters carry a full tracker sheet under each
+            # H2 — force each onto its own page boundary. Adventure and
+            # player-handouts let H2 sections flow naturally so short
+            # entries (e.g., a landscape-image handout followed by another
+            # landscape-image handout) can share a page rather than leaving
+            # half-empty bottoms.
+            if self.section == "combat-tracker" and self._h2_seen_in_section:
+                self._append_pagebreak()
             self._h2_seen_in_section = True
             self.out.append(Paragraph(text, H2))
         elif level == 3:
@@ -388,8 +476,10 @@ class BlockRenderer:
             self.out.append(Paragraph(text, H4))
 
     def _h_thematic_break(self, node: dict) -> None:
-        # Used as a separator. Tracker between encounters/cards already gets
-        # PageBreak from H2 handling, so a thin spacer is enough here.
+        # Thematic breaks render as a soft visual gap. In the combat-tracker
+        # file a `---` precedes each tactical map, but the page-break logic
+        # lives in `_emit_image`: tactical maps unconditionally land on a
+        # fresh page, so the `---` itself is just decorative here.
         self.out.append(Spacer(1, 6))
 
     def _h_paragraph(self, node: dict) -> None:
@@ -407,7 +497,7 @@ class BlockRenderer:
             return
         html = _inline_to_html(children)
         if html.strip():
-            self.out.append(Paragraph(html, BODY))
+            self.out.append(Paragraph(html, self.body))
         # Track stat-block labels (e.g. **Actions**, **Traits**, **Spellcasting (...)**)
         # so a list immediately after them renders without bullets.
         self._after_stat_label = _is_bold_only_paragraph(node)
@@ -416,7 +506,7 @@ class BlockRenderer:
         # Used inside list items.
         html = _inline_to_html(node.get("children", []))
         if html.strip():
-            self.out.append(Paragraph(html, BODY_LEFT))
+            self.out.append(Paragraph(html, self.body_left))
 
     def _h_block_quote(self, node: dict) -> None:
         self._after_stat_label = False
@@ -430,7 +520,7 @@ class BlockRenderer:
         inner = re.sub(r"^\[!\w+\][^<]*<br/>", "", inner)
         inner = re.sub(r"^\[!\w+\][^<]*", "", inner)
         if inner.strip():
-            self.out.append(Paragraph(inner, READ))
+            self.out.append(Paragraph(inner, self.read))
 
     def _h_list(self, node: dict) -> None:
         children = node.get("children", [])
@@ -438,11 +528,24 @@ class BlockRenderer:
         self._after_stat_label = False
         # Write-in slots: every item is just underscores -> plain ruled lines, no bullets.
         if children and all(_is_ruled_line_item(li) for li in children):
+            box: list = []
             for _ in children:
-                self.out.append(Spacer(1, 4))
-                self.out.append(HRFlowable(width="100%", thickness=0.4,
-                                           color=INK, spaceBefore=0, spaceAfter=0))
-            self.out.append(Spacer(1, 4))
+                box.append(Spacer(1, 4))
+                box.append(HRFlowable(width="100%", thickness=0.4,
+                                      color=INK, spaceBefore=0, spaceAfter=0))
+            box.append(Spacer(1, 4))
+            # If the immediately preceding flowable is a heading, bind it with
+            # the write-in box so the box can't drift away from its heading.
+            # The box is short and predictable, so this is always safe.
+            end = len(self.out) - 1
+            while end >= 0 and isinstance(self.out[end], (Spacer, HRFlowable)):
+                end -= 1
+            if end >= 0 and self._is_heading_flow(self.out[end]):
+                bound = list(self.out[end:]) + box
+                del self.out[end:]
+                self.out.append(KeepTogether(bound))
+            else:
+                self.out.extend(box)
             return
         # Stat-block content under a bold label (Traits / Actions / Reactions /
         # Spellcasting): conventional 5e formatting is labeled paragraphs, no bullets.
@@ -454,7 +557,7 @@ class BlockRenderer:
                         inner_html.append(_inline_to_html(child.get("children", [])))
                 html = "<br/>".join(h for h in inner_html if h.strip())
                 if html.strip():
-                    self.out.append(Paragraph(html, BODY_LEFT))
+                    self.out.append(Paragraph(html, self.body_left))
             return
         # Default: real bulleted list. Render each item as a Paragraph with bulletText
         # so we can independently control bullet position (bulletIndent) and text
@@ -468,7 +571,7 @@ class BlockRenderer:
                 elif child.get("type") == "paragraph":
                     inner_html.append(_inline_to_html(child.get("children", [])))
             html = "<br/>".join(h for h in inner_html if h.strip())
-            p = Paragraph(html or "&nbsp;", BULLET, bulletText="\u2022")
+            p = Paragraph(html or "&nbsp;", self.bullet, bulletText="\u2022")
             self.out.append(p)
         self.out.append(Spacer(1, 4))
 
@@ -480,21 +583,248 @@ class BlockRenderer:
     def _h_block_code(self, node: dict) -> None:
         self._after_stat_label = False
         raw = node.get("raw", "")
-        self.out.append(Paragraph(f"<font face='Courier'>{_esc(raw)}</font>", BODY_LEFT))
+        self.out.append(Paragraph(f"<font face='Courier'>{_esc(raw)}</font>", self.body_left))
 
     # -- image emission -----------------------------------------------------
 
+    def _append_pagebreak(self) -> None:
+        """Append a PageBreak unless one is already effective at this point.
+
+        Skips when the last flowable is a PageBreak *or* when only decorative
+        flowables (Spacer / HRFlowable) sit between us and the previous
+        PageBreak — those don't add page content, so another break would
+        produce a blank page. Also skips on an empty `out` to avoid a leading
+        blank page."""
+        if not self.out:
+            return
+        for f in reversed(self.out):
+            if isinstance(f, PageBreak):
+                return
+            if isinstance(f, (Spacer, HRFlowable)):
+                continue
+            break
+        self.out.append(PageBreak())
+
+    @staticmethod
+    def _is_heading_flow(flow) -> bool:
+        return (isinstance(flow, Paragraph)
+                and getattr(flow.style, "name", "")
+                in {"H1", "H1Cover", "H2", "H3", "H4"})
+
+    @staticmethod
+    def _is_short_intro_flow(flow) -> bool:
+        """A short body paragraph that likely belongs to the preceding heading
+        (e.g. the italic scene-reference line under a combat-tracker H2)."""
+        if not isinstance(flow, Paragraph):
+            return False
+        if getattr(flow.style, "name", "") in {"H1", "H2", "H3", "H4"}:
+            return False
+        try:
+            text = flow.getPlainText()
+        except Exception:
+            return False
+        return len(text) <= 300
+
     def _emit_image(self, img_node: dict) -> None:
         url = img_node.get("attrs", {}).get("url") or img_node.get("url", "")
-        alt = _cell_text(img_node.get("children", []))
         if not url:
             return
+
+        alt = (img_node.get("attrs", {}).get("alt", "")
+               or _cell_text(img_node.get("children", [])))
+        is_tactical_map = (self.section == "combat-tracker"
+                           and alt.startswith("Tactical Map"))
+
+        # Player-handout pages are composed one-per-page in
+        # _finalize_player_handouts (title → image → text). Emit the image at
+        # natural full width here; the finalizer resizes it to fill whatever
+        # vertical space the title and description leave on the page.
         if self.section == "player-handouts":
-            img = sized_image(url, self.manifest, max_w_in=6.5, max_h_in=7.5)
+            img = sized_image(url, self.manifest, max_w_in=7.2)
+            img.hAlign = "CENTER"
+            self.out.append(img)
+            return
+
+        # Combat tracker: only tactical maps render. Portraits and any other
+        # imagery are suppressed — stat-block cards stay text-only and
+        # portraits live exclusively in the player-handout appendix.
+        if self.section == "combat-tracker":
+            if not is_tactical_map:
+                return
+            # Tactical map: render on its own page at the end of the
+            # encounter section. Pop trailing decorative flowables (the
+            # `---` thematic break that preceded the map becomes a Spacer,
+            # which we drop here in favour of an explicit page break),
+            # insert a hard PageBreak, then emit the image full-page
+            # unbound. The next encounter's `##` heading triggers its own
+            # page break, so the map page is always isolated.
+            while self.out and isinstance(self.out[-1], (Spacer, HRFlowable)):
+                self.out.pop()
+            self.out.append(PageBreak())
+            img = sized_image(url, self.manifest, max_w_in=7.2, max_h_in=9.8)
+            img.hAlign = "CENTER"
+            self.out.append(img)
+            return
+
+        # Look back, skipping trailing decorative flowables, for a heading
+        # (optionally with one short intro paragraph between heading and
+        # image). If found, bind the heading and image into a `KeepTogether`
+        # so ReportLab keeps them on the same page — preventing orphaned
+        # headings on otherwise-empty pages.
+        end = len(self.out) - 1
+        while end >= 0 and isinstance(self.out[end], (Spacer, HRFlowable)):
+            end -= 1
+
+        heading_idx = None
+        if end >= 0 and self._is_heading_flow(self.out[end]):
+            heading_idx = end
+        elif end >= 0 and self._is_short_intro_flow(self.out[end]):
+            prev = end - 1
+            while prev >= 0 and isinstance(self.out[prev], (Spacer, HRFlowable)):
+                prev -= 1
+            if prev >= 0 and self._is_heading_flow(self.out[prev]):
+                heading_idx = prev
+        elif end >= 0 and isinstance(self.out[end], Table):
+            # Cover-page pattern: heading → info table → image.
+            # Look back past the table to bind all three on the same page.
+            prev = end - 1
+            while prev >= 0 and isinstance(self.out[prev], (Spacer, HRFlowable)):
+                prev -= 1
+            if prev >= 0 and self._is_heading_flow(self.out[prev]):
+                heading_idx = prev
+
+        # Image inclusion policy: outside the combat-tracker (handled above)
+        # and player-handout (handled above) sections, only the adventure
+        # file's cover/title page emits an image — the one bound with the
+        # session info table. The DM quick-ref (and any other section)
+        # carries none. Suppressed images leave their bound heading in
+        # place; only the picture drops.
+        _has_table = (heading_idx is not None
+                      and any(isinstance(f, Table)
+                              for f in self.out[heading_idx:]))
+        if self.section == "adventure":
+            keep = _has_table  # cover/title page only
         else:
-            img = sized_image(url, self.manifest, max_w_in=5.5, max_h_in=4.0)
+            keep = False
+        if not keep:
+            return
+
+        if heading_idx is not None:
+            bound = list(self.out[heading_idx:])
+            del self.out[heading_idx:]
+            has_table = any(isinstance(f, Table) for f in bound)
+            if has_table:
+                # Cover-page pattern (title → table → image). Emit each
+                # flowable individually rather than as KeepTogether; the
+                # combined block is too tall for KeepTogether to guarantee
+                # single-page placement on Letter.
+                #
+                # Dynamically compute how much vertical space the bound
+                # flowables consume so the image gets exactly the remainder
+                # of the first page.
+                _frame_w, _frame_h = _frame_content_dims()
+                _bound_h = sum(_flow_height(_f, _frame_w, _frame_h)
+                               for _f in bound)
+                _spacer_h = 4  # pt — Spacer(1, 4) inserted before image
+                _avail_h = _frame_h - _bound_h - _spacer_h
+                _max_h_in = max(1.0, (_avail_h / inch) * 0.99)  # 1 % safety margin
+                img = sized_image(url, self.manifest, max_w_in=7.2,
+                                  max_h_in=_max_h_in)
+                img.hAlign = "CENTER"
+                self.out.extend(bound)
+                self.out.extend([Spacer(1, _spacer_h), img, PageBreak()])
+            else:
+                img = sized_image(url, self.manifest, max_w_in=7.2,
+                                  max_h_in=8.5)
+                img.hAlign = "CENTER"
+                bound.extend([Spacer(1, 4), img])
+                self.out.append(KeepTogether(bound))
+            return
+
+        # No pairing — image flows naturally. ReportLab page-breaks before
+        # it if the image doesn't fit in the remaining space (a portrait
+        # image won't squeeze into a couple of inches at the bottom of a
+        # text page), but a landscape image that does fit will render below
+        # preceding text instead of forcing a near-empty page.
+        img = sized_image(url, self.manifest, max_w_in=7.2, max_h_in=9.8)
         img.hAlign = "CENTER"
-        self.out.append(KeepTogether([img, Paragraph(_esc(alt), CAPTION)]))
+        self.out.append(img)
+
+    # -- player-handout page composition ------------------------------------
+
+    @staticmethod
+    def _is_top_heading(flow) -> bool:
+        """A heading that opens a new handout page (H1 or H2)."""
+        return (isinstance(flow, Paragraph)
+                and getattr(flow.style, "name", "") in {"H1", "H1Cover", "H2"})
+
+    def _finalize_player_handouts(self) -> None:
+        """Re-lay the player-handout appendix as one entry per page.
+
+        Each top-level heading (H1/H2) starts a fresh page. Entries that carry
+        an image are composed as: title → image (sized to fill the page's
+        remaining height) → descriptive text, all kept together on one page.
+        Entries without an image (e.g. a bulleted list, a quoted prop) simply
+        get their own page and flow normally."""
+        flows = self.out
+        starts = [i for i, f in enumerate(flows) if self._is_top_heading(f)]
+        if not starts:
+            return
+        bounds: list[tuple[int, int]] = []
+        if starts[0] > 0:
+            bounds.append((0, starts[0]))  # any preamble before first heading
+        for j, s in enumerate(starts):
+            e = starts[j + 1] if j + 1 < len(starts) else len(flows)
+            bounds.append((s, e))
+
+        frame_w, frame_h = _frame_content_dims()
+        new_out: list = []
+        for s, e in bounds:
+            seg = list(flows[s:e])
+            if not seg:
+                continue
+            if new_out and not isinstance(new_out[-1], PageBreak):
+                new_out.append(PageBreak())
+            img_pos = next((k for k, f in enumerate(seg)
+                            if isinstance(f, Image)), None)
+            if self._is_top_heading(seg[0]) and img_pos is not None:
+                new_out.append(
+                    self._compose_handout_page(seg, img_pos, frame_w, frame_h))
+            else:
+                new_out.extend(seg)
+        self.out = new_out
+
+    @staticmethod
+    def _compose_handout_page(seg: list, img_pos: int,
+                              frame_w: float, frame_h: float):
+        """Build a single-page KeepTogether: title, then a page-filling image,
+        then the descriptive text. The image is scaled (aspect preserved) to
+        consume whatever vertical space the title and text leave free."""
+        heading = seg[0]
+        img = seg[img_pos]
+        text_flows = seg[img_pos + 1:]
+        # Drop spacers that would otherwise sit directly under the image.
+        while text_flows and isinstance(text_flows[0], Spacer):
+            text_flows = text_flows[1:]
+
+        SP_TITLE, SP_TEXT = 6, 10  # gaps above and below the image
+        title_h = _flow_height(heading, frame_w, frame_h)
+        text_h = sum(_flow_height(f, frame_w, frame_h) for f in text_flows)
+        avail = (frame_h - title_h - text_h - SP_TITLE - SP_TEXT) * 0.97
+        avail = max(avail, 1.2 * inch)  # never collapse the image entirely
+
+        ratio = (img.drawWidth / img.drawHeight) if img.drawHeight else 0.75
+        target_h = avail
+        target_w = target_h * ratio
+        if target_w > frame_w:
+            target_w = frame_w
+            target_h = target_w / ratio
+        img.drawWidth, img.drawHeight = target_w, target_h
+        img.hAlign = "CENTER"
+
+        page = [heading, Spacer(1, SP_TITLE), img, Spacer(1, SP_TEXT)]
+        page.extend(text_flows)
+        return KeepTogether(page)
 
 
 # --- public API ------------------------------------------------------------
@@ -532,15 +862,19 @@ def build_pdf(md_files: list[str | Path], images_json: str | Path,
         text = path.read_text()
         text, meta = strip_frontmatter(text)
         section = _infer_section(path, meta)
+        font_scale = float(meta.get("font_scale", 1.0))
         ast = parser(text)
         renderer = BlockRenderer(manifest, section,
-                                 first_h1_pagebreak=(i > 0))
+                                 first_h1_pagebreak=False,
+                                 font_scale=font_scale)
+        if i > 0 and story:
+            story.append(PageBreak())
         story.extend(renderer.render(ast))
     out = Path(out_path)
     doc = SimpleDocTemplate(
         str(out), pagesize=LETTER,
-        leftMargin=0.65*inch, rightMargin=0.65*inch,
-        topMargin=0.6*inch, bottomMargin=0.6*inch,
+        leftMargin=MARGIN_H, rightMargin=MARGIN_H,
+        topMargin=MARGIN_V, bottomMargin=MARGIN_V,
         title=title or out.stem,
     )
     doc.build(story)
