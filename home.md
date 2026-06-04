@@ -24,11 +24,11 @@ PDFs live in `references/`. Run `scripts/extract_pdf.py` to extract a PDF to mar
 python scripts/extract_pdf.py references/my-sourcebook.pdf references/my-sourcebook/_raw
 ```
 
-This produces `_raw/full.md`, `_raw/pages/page-NNNN.md`, and `_raw/images/` — the layout `agents.md` expects.
+This produces `_raw/full.md`, `_raw/pages/page-NNNN.md`, and `_raw/images/` — the layout `AGENTS.md` expects.
 
 ## DM Operating Doc
 
-- [[agents|Campaign Keeper instructions]] — source hierarchy, canon-first rules, generator handoff
+- [[AGENTS|Campaign Keeper instructions]] — source hierarchy, canon-first rules, generator handoff
 - [[dnd-adventure-generator|Adventure Generator workflow]] — scope → outline → images → markdown → bible → PDF
 
 ---
@@ -44,7 +44,7 @@ You'll need to **turn off Restricted Mode** the first time (Settings → Communi
 ```
 <your-campaign>/
 ├── home.md                       # this file — vault index + Obsidian setup
-├── agents.md                     # Campaign Keeper agent instructions
+├── AGENTS.md                     # Campaign Keeper agent instructions (CLAUDE.md symlinks here)
 ├── dnd-adventure-generator.md    # Generation workflow (scope → outline → images → markdown → bible → PDF)
 ├── campaign/                     # campaign-bible canon
 │   ├── world.md                  # setting overview
