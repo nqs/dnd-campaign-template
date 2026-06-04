@@ -39,6 +39,7 @@ setup skill reads to present and install the setting.
 | Slug | Name | System | Bundled references |
 |------|------|--------|--------------------|
 | `forgotten-realms` | Forgotten Realms | D&D 5e | Campaign Guide, Player's Guide |
+| `eberron` | Eberron | D&D 5e | Campaign Guide |
 
 ## Adding your own setting
 
