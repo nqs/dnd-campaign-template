@@ -4,6 +4,26 @@
 
 ---
 
+## Working Conventions
+
+These conventions govern how the agent operates in this repository, regardless of the generative task at hand.
+
+### Git workflow
+
+- **Work on `main` directly.** Do NOT create or switch to feature branches unless
+  the user explicitly instructs you to.
+- **Do NOT commit or push unless the user explicitly prompts you to.** Make and edit
+  files freely in the working tree, but leave committing and pushing to the user's say-so.
+
+### Session planning
+
+- **Default session length: ~2 hours of table time.** Scope and pace every session
+  plan (and any generated adventure's `Duration`) to fit roughly two hours unless the
+  user says otherwise. Push overflow material into the next session rather than padding
+  the runtime.
+
+---
+
 ## Source Hierarchy
 
 When resolving any question of lore, geography, NPC identity, faction structure, or setting detail, consult sources in this order:
@@ -22,7 +42,7 @@ Before generating any location, NPC, faction, or piece of lore, check the refere
 
 This agent's knowledge base is the campaign bible. Before doing anything generative, skim whatever files are present. Consult them like a reference — you don't need to read them cover to cover every turn.
 
-**Vault layout.** Campaign-bible canon lives under `campaign/` (world, geography, factions, roster, party, session-log). Tooling (`agents.md`, `dnd-adventure-generator.md`, `home.md`), generated session content (`sessions/session <N>/`), and reference materials (`references/` — markdown extracts of sourcebooks) sit at the vault root.
+**Vault layout.** Campaign-bible canon lives under `campaign/` (world, geography, factions, roster, party, session-log). Tooling (`AGENTS.md`, `dnd-adventure-generator.md`, `home.md`), generated session content (`sessions/session <N>/`), and reference materials (`references/` — markdown extracts of sourcebooks) sit at the vault root.
 
 - **`campaign/world.md`** — setting overview, cosmology, timeline, tone
 - **`campaign/geography.md`** — regions, cities, travel distances, climate
@@ -82,8 +102,8 @@ Follow the markdown authoring, image generation, and PDF compilation instruction
 Every generated adventure produces four Obsidian markdown files in `sessions/session <N>/`, named with the slugified adventure title:
 
 1. **`<slug>-1-adventure.md`** — main body: the adventure narrative with inline images and maps.
-2. **`<slug>-2-combat-tracker.md`** — DM combat tracker: per-encounter tracker sheets plus stat-block cards for every non-PC combatant. The full specification lives in `dnd-adventure-generator.md` under the **Combat Tracker** section.
-3. **`<slug>-3-player-handouts.md`** — player handout appendix: opens with a **"Where We Left Off" recap page** — a brief player-facing recap of the prior session anchored by an image of the location the PCs are starting at — followed by every image that appears inline in File 1 reproduced under its own labeled heading (e.g., "Lady Mireya," "The Crumbling Keep," "Orc War-Chief"). These are meant to be shown to the players at the table as visual handouts. The recap sources from `campaign/session-log.md`; the full specification lives in `dnd-adventure-generator.md` under the **Session Recap Page** section.
+2. **`<slug>-2-combat-tracker.md`** — DM combat tracker. Each combat encounter is rendered in this **strict six-part order**: (1) combat title heading, (2) italic subtitle (scene reference + difficulty), (3) encounter summary key/value table, (4) initiative table (with blank PC rows) plus round strip, triggers, concentration, tactics summary, and loot sections, (5) text-only stat-block cards for every non-PC combatant with round-by-round actions, (6) a hard page break and then a **full-page tactical map on its own page**. Tactical maps appear **only** in this file and **only** as part 6 of an encounter — never in the adventure narrative, player handouts, or quick reference. NPC portraits **never** appear in this file. The full specification lives in `dnd-adventure-generator.md` under the **Combat Tracker** section.
+3. **`<slug>-3-player-handouts.md`** — player handout appendix: opens with a **"Where We Left Off" recap page** — a brief player-facing recap of the prior session anchored by an image of the location the PCs are starting at — followed by every image that appears inline in File 1 reproduced under its own labeled heading (e.g., "Lady Mireya," "The Crumbling Keep," "Orc War-Chief"). These are meant to be shown to the players at the table as visual handouts. **Tactical / encounter maps are excluded from this file** — they live in File 2 (combat tracker) so the DM keeps them table-side without revealing the layout to the players. The recap sources from `campaign/session-log.md`; the full specification lives in `dnd-adventure-generator.md` under the **Session Recap Page** section.
 4. **`<slug>-4-dm-quick-ref.md`** — DM quick reference: a print-and-keep-at-the-table cheat sheet condensing scene order, key mechanics, countdowns, faction priorities, bargain matrices, ending branches, debrief payments, and post-play loose-end flags. Tables and short bulleted lists only — full prose lives in File 1. The full specification lives in `dnd-adventure-generator.md` under the **DM Quick Reference** section.
 
 The four files are the **primary deliverable** and are always produced together. After authoring them, stop and let the user review. PDF compilation is a separate, opt-in step the agent only runs when the user explicitly asks. When a PDF is built, it mirrors the four markdown files in the same order (main body → combat tracker → player handouts → DM quick reference) and never contradicts or omits content from them — the markdown is the source of truth.
@@ -98,7 +118,7 @@ Once the four markdown files are authored and the user confirms the content is c
 - **`campaign/geography.md`** — new permanent locations, dungeon sites, regional landmarks, or travel routes. Place under the **DM Additions** section, tag `(DM ADDITION)`, and add a source-notes callout when the surrounding region is canonical so the sourcebook provenance is clear.
 
 **Hold until after the session is actually played:**
-- **`campaign/session-log.md`** — Session Index row, Campaign Arc refresh, Recent Session pointer, Loose Ends Tracker resolutions, Foreshadowing Log entries. **Do not write session-log entries based on planned content — only on what actually happened at the table.** State this hold explicitly to the user when proposing the pre-play bible updates so they know session-log is intentionally untouched.
+- **`campaign/session-log.md`** — Session Index row, Campaign Arc refresh, Recent Session pointer, Loose Ends Tracker resolutions, Foreshadowing Log entries. **Do not write session-log entries based on planned content — only on what actually happened at the table.** State this hold explicitly to the user when proposing the pre-play bible updates so they know session-log is intentionally untouched. Pre-play canon updates go to roster, factions, and geography only; session-log waits for the actual table outcome. **Never copy read-aloud text from the session plan into a session log** — summarize what actually happened in plain prose instead.
 
 **Edit mode depends on agent capability.** When running with file-write access (Augment, Cursor, similar), the agent edits the bible files directly using its file-editing tools, then summarizes the diff back to the user. When running as a stock chat model without write access, the agent produces copy-pasteable markdown blocks instead. In either mode the agent surfaces every change, never silently modifies content, and never claims a file was edited if it wasn't.
 
@@ -135,11 +155,15 @@ Produce updates as copy-pasteable markdown when the agent lacks write access; ed
 - Do not modify the knowledge files silently. Always surface proposed changes for the user to accept.
 - Do not skip any of the four markdown deliverables. Every adventure produces a main-body file, a combat tracker file, a player-handout appendix file, and a DM quick-reference file — together, in the same session folder.
 - Do not jump to PDF compilation on your own. Author the markdown files, present them to the user, and wait for an explicit request before building a PDF.
-- Do not ship a PDF without the DM combat tracker section. Every combat encounter must have a printable tracker sheet and stat-block cards.
+- Do not ship a PDF without the DM combat tracker section. Every combat encounter must have a printable tracker sheet and stat-block cards, placed between the main body and the player-handout appendix.
+- Do not deviate from the strict six-part combat-encounter order in File 2: (1) combat title, (2) italic subtitle, (3) encounter summary table, (4) initiative table + tracker sheet sections, (5) stat-block cards with round-by-round actions, (6) full-page tactical map on its own page. The map is always **last** in the encounter section — never above the tracker sheet, never beside the stat blocks.
+- Do not place tactical / encounter maps anywhere other than File 2 part 6. They never appear in File 1 (adventure narrative), File 3 (player handouts), or File 4 (DM quick reference).
+- Do not place NPC, monster, or creature portraits anywhere in File 2. Portraits live exclusively in File 3 (player handouts); stat-block cards in the combat tracker are text-only.
 - Do not ship a PDF without the player-handout appendix. Inline images alone are not sufficient.
-- Do not ship a PDF without the DM quick-reference section.
+- Do not ship a PDF without the DM quick-reference section. The cheat-sheet appendix is part of the standard four-file deliverable; if it exists in the session folder, it must appear in the PDF.
+- Do not stage a level-up as a mid-session beat. If an adventure crosses a milestone or enough XP to advance, record the advancement as something to apply **between sessions** — flag it as *earned, to be applied later*, never "the party levels up now."
 - Do not consider a session "done generating" until the campaign bible has been updated. After the four markdown files are approved, propose `campaign/roster.md` / `campaign/factions.md` / `campaign/geography.md` updates as the next workflow step — not as an optional follow-up.
-- Do not write `campaign/session-log.md` entries for sessions that have not yet been played.
+- Do not write `campaign/session-log.md` entries for sessions that have not yet been played. Pre-play canon updates go to roster, factions, and geography only; session-log waits for the actual table outcome.
 
 ---
 

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 usage() {
-    echo "Usage: $0 <input_audio_file> [output_file.md]" >&2
+    echo "Usage: $0 <input_audio_file> [output_file]" >&2
     exit 1
 }
 
@@ -22,8 +22,9 @@ fi
 INPUT="$(cd "$(dirname "$INPUT")" && pwd)/$(basename "$INPUT")"
 OUTPUT_DIR="$(cd "$(dirname "$OUTPUT")" && pwd)"
 OUTPUT="${OUTPUT_DIR}/$(basename "$OUTPUT")"
+SCRIPTS_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-cd "$(dirname "$0")"
+cd "$SCRIPTS_DIR"
 
 if [ "${SKIP_PYENV:-0}" != "1" ]; then
     if ! command -v pyenv >/dev/null 2>&1; then
@@ -53,7 +54,7 @@ source whisper-env/bin/activate
 if ! command -v whisperx >/dev/null 2>&1; then
     echo "whisperx not found in whisper-env; installing..."
     pip install --upgrade pip
-    pip install whisperx
+    pip install whisperx anthropic
 fi
 
 if [ -n "${HF_TOKEN:-}" ]; then
@@ -69,13 +70,57 @@ fi
 WHISPERX_TMPDIR="$(mktemp -d)"
 trap 'rm -rf "$WHISPERX_TMPDIR"' EXIT
 
+MODEL="${WHISPERX_MODEL:-large-v2}"
+
 whisperx "$INPUT" \
-    --model base.en \
+    --model "$MODEL" \
     --diarize \
+    --min_speakers 4 \
+    --max_speakers 7 \
     --hf_token "$HF_TOKEN_VALUE" \
-    --output_format txt \
+    --compute_type int8 \
+    --output_format json \
     --output_dir "$WHISPERX_TMPDIR"
 
 INPUT_STEM="$(basename "$INPUT")"
 INPUT_STEM="${INPUT_STEM%.*}"
-mv "$WHISPERX_TMPDIR/${INPUT_STEM}.txt" "$OUTPUT"
+
+# Discover an optional speaker mapping file next to the audio.
+AUDIO_DIR="$(dirname "$INPUT")"
+SPEAKERS_ARGS=()
+if [ -f "${AUDIO_DIR}/speakers.json" ]; then
+    SPEAKERS_ARGS=("--speakers" "${AUDIO_DIR}/speakers.json")
+elif [ -f "${AUDIO_DIR}/speakers.yaml" ]; then
+    SPEAKERS_ARGS=("--speakers" "${AUDIO_DIR}/speakers.yaml")
+fi
+
+# Auto-detect speaker names from a roll-call intro if no mapping file exists.
+if [ "${#SPEAKERS_ARGS[@]}" -eq 0 ] && [ -n "${ANTHROPIC_API_KEY:-}" ]; then
+    echo "No speakers.json found; attempting auto-detection from intro..."
+    REPO_ROOT="$(cd "$SCRIPTS_DIR/.." && pwd)"
+    python "$SCRIPTS_DIR/detect_speakers.py" \
+        "$WHISPERX_TMPDIR/${INPUT_STEM}.json" \
+        "$INPUT" \
+        --campaign-dir "$REPO_ROOT/campaign" || true
+    if [ -f "${AUDIO_DIR}/speakers.json" ]; then
+        SPEAKERS_ARGS=("--speakers" "${AUDIO_DIR}/speakers.json")
+        echo "Auto-detected speaker mapping written to ${AUDIO_DIR}/speakers.json"
+    fi
+fi
+
+python "$SCRIPTS_DIR/format_transcript.py" \
+    "$WHISPERX_TMPDIR/${INPUT_STEM}.json" \
+    "$OUTPUT" \
+    --source "$(basename "$INPUT")" \
+    --model "$MODEL" \
+    "${SPEAKERS_ARGS[@]}"
+
+# Generate a session log from the transcript if ANTHROPIC_API_KEY is available.
+if [ -n "${ANTHROPIC_API_KEY:-}" ]; then
+    REPO_ROOT="$(cd "$SCRIPTS_DIR/.." && pwd)"
+    python "$SCRIPTS_DIR/update_session_log.py" \
+        "$OUTPUT" \
+        "$INPUT" \
+        --campaign-dir "$REPO_ROOT/campaign" \
+        --sessions-dir "$REPO_ROOT/sessions" || true
+fi

@@ -17,7 +17,7 @@ A reusable Obsidian vault + toolchain for running a D&D 5e campaign. Clone it, f
 3. Fill in the placeholders in `campaign/` — start with `world.md`, then `party.md`.
 4. Rename `[Campaign Name]` references in `home.md` to your actual campaign name.
 5. Add sourcebook PDFs to `references/` and extract them (see [Reference material](#reference-material)).
-6. Set the `HF_TOKEN` secret in your GitHub repo settings to enable auto-transcription (see [Transcription workflow](#transcription-workflow)).
+6. Set the `HF_TOKEN` secret (and, for speaker detection + drafted session logs, the `ANTHROPIC_API_KEY` secret) in your GitHub repo settings to enable auto-transcription (see [Transcription workflow](#transcription-workflow)).
 
 ---
 
@@ -25,9 +25,13 @@ A reusable Obsidian vault + toolchain for running a D&D 5e campaign. Clone it, f
 
 ```
 <your-campaign>/
+├── AGENTS.md                       # Campaign Keeper agent instructions
+├── CLAUDE.md                       # symlink → AGENTS.md (read by Claude Code)
 ├── home.md                         # vault index + Obsidian setup guide
-├── agents.md                       # Campaign Keeper agent instructions
 ├── dnd-adventure-generator.md      # adventure generation workflow
+├── .claude/
+│   └── settings.json               # Claude Code sandbox/permission config
+├── .gitattributes                  # Git LFS rules for audio + PDFs
 ├── campaign/
 │   ├── world.md                    # setting overview, tone, cosmology, history
 │   ├── geography.md                # regions, cities, travel distances
@@ -40,8 +44,10 @@ A reusable Obsidian vault + toolchain for running a D&D 5e campaign. Clone it, f
 │       ├── <slug>-1-adventure.md
 │       ├── <slug>-2-combat-tracker.md
 │       ├── <slug>-3-player-handouts.md
-│       ├── <slug>-4-dm-quick-ref.md   # optional
-│       ├── images.json
+│       ├── <slug>-4-dm-quick-ref.md
+│       ├── images/
+│       │   ├── images.json         # image manifest (url, aspect_ratio, file)
+│       │   └── <slug>.jpg          # one git-tracked jpg per generated image
 │       ├── <slug>.pdf              # built by scripts/build_pdf.py
 │       └── session <N> - log.md   # post-session write-up
 ├── references/
@@ -51,10 +57,13 @@ A reusable Obsidian vault + toolchain for running a D&D 5e campaign. Clone it, f
 │           ├── pages/              # page-NNNN.md per page
 │           └── images/             # extracted figures
 ├── scripts/
-│   ├── build_pdf.py                # CLI: build session PDF
+│   ├── build_pdf.py                # CLI: build session PDF (+ standalone handouts)
 │   ├── md_to_pdf.py                # markdown → ReportLab renderer
 │   ├── extract_pdf.py              # PDF → markdown extractor
-│   └── transcribe.sh               # local WhisperX wrapper
+│   ├── transcribe.sh               # WhisperX wrapper → formatted .md transcript
+│   ├── detect_speakers.py          # map diarized speakers to player names
+│   ├── format_transcript.py        # WhisperX JSON → readable markdown transcript
+│   └── update_session_log.py       # transcript → drafted session log (Claude)
 └── .github/workflows/
     ├── transcribe.yml              # auto-transcribe audio on push
     └── test.yml                    # CI tests for transcribe.sh
@@ -83,11 +92,11 @@ Sourcebook PDFs live in `references/`. The agent searches extracted markdown rat
    - `references/my-sourcebook/_raw/pages/page-NNNN.md` — one file per page (for page-accurate citations)
    - `references/my-sourcebook/_raw/images/` — extracted figures and maps
 
-3. Add the sourcebook to the **Source Hierarchy** section in `agents.md` so the Campaign Keeper agent knows to consult it.
+3. Add the sourcebook to the **Source Hierarchy** section in `AGENTS.md` so the Campaign Keeper agent knows to consult it.
 
 ### Git LFS
 
-Large PDFs and extracted PNGs should be tracked with Git LFS rather than committed as regular objects:
+The committed `.gitattributes` already tracks session audio (`*.m4a`) and PDFs (`*.pdf`) with Git LFS so large binaries don't bloat the repo. To also track extracted sourcebook PDFs/PNGs under `references/`:
 
 ```bash
 git lfs track "references/**/*.pdf"
@@ -101,7 +110,7 @@ Alternatively, list the PDFs in `.gitignore` — the markdown extracts are what 
 
 ## Transcription workflow
 
-Pushing any audio file to the repo triggers a GitHub Actions job that runs [WhisperX](https://github.com/m-bain/whisperX) (speaker-diarized transcription) and commits the resulting `.txt` transcript alongside the audio file.
+Pushing any audio file to the repo triggers a GitHub Actions job that runs [WhisperX](https://github.com/m-bain/whisperX) (speaker-diarized transcription) and commits the resulting formatted `.md` transcript alongside the audio file. When an `ANTHROPIC_API_KEY` is available, the pipeline also names the diarized speakers from a roll-call intro and drafts a session log from the transcript.
 
 ### Supported formats
 
@@ -111,35 +120,38 @@ Pushing any audio file to the repo triggers a GitHub Actions job that runs [Whis
 
 1. Obtain a [Hugging Face](https://huggingface.co) token (free account). The diarization model requires accepting the terms for `pyannote/speaker-diarization`.
 2. Add it as a repository secret: **Settings → Secrets and variables → Actions → New repository secret** — name it `HF_TOKEN`.
+3. *(Optional but recommended)* Add an `ANTHROPIC_API_KEY` repository secret to enable Claude-powered speaker naming (`detect_speakers.py`) and session-log drafting (`update_session_log.py`). Without it, transcription still runs; those two steps are skipped.
 
 ### How it works
 
 - On every push, the workflow diffs against the previous commit and transcribes only **new or modified** audio files.
-- Each transcript is saved as `<audio-file>.txt` in the same directory.
+- WhisperX diarizes the audio; `format_transcript.py` renders it to a readable markdown transcript saved as `<audio-file>.md` in the same directory.
+- If a `speakers.json`/`speakers.yaml` mapping sits next to the audio it's applied directly; otherwise `detect_speakers.py` tries to infer speaker names from a roll-call intro (requires `ANTHROPIC_API_KEY`).
+- With `ANTHROPIC_API_KEY` set, `update_session_log.py` drafts a session log from the transcript using the campaign bible for names and tone.
 - Transcripts are committed back to the branch with `[skip ci]` to avoid a loop.
 - To backfill all audio files in the repo at once, trigger the workflow manually via **Actions → Transcribe audio → Run workflow** and check *Transcribe every audio file in the repo*.
 
 ### Running locally
 
-`scripts/transcribe.sh` wraps WhisperX for local use. It creates and manages a `whisper-env` virtualenv automatically inside the `scripts/` directory.
+`scripts/transcribe.sh` wraps WhisperX for local use. It creates and manages a `whisper-env` virtualenv automatically inside the `scripts/` directory and chains the speaker-detection, formatting, and session-log steps.
 
 **Prerequisites:** [pyenv](https://github.com/pyenv/pyenv) with Python 3.11.9 installed, and `ffmpeg` on your PATH.
 
 ```bash
-# Transcribe a recording; output defaults to <input>.txt
+# Transcribe a recording; output defaults to <input>.md
 ./scripts/transcribe.sh sessions/session\ 3/recording.m4a
 
 # Specify an explicit output path
-./scripts/transcribe.sh recording.m4a transcripts/session3.txt
+./scripts/transcribe.sh recording.m4a transcripts/session3.md
 ```
 
-Set `HF_TOKEN` in your environment or place your token in a file called `huggingface.token` inside the `scripts/` directory.
+Set `HF_TOKEN` in your environment or place your token in a file called `huggingface.token` inside the `scripts/` directory. Set `ANTHROPIC_API_KEY` in your environment to enable speaker naming and session-log drafting. Override the WhisperX model with `WHISPERX_MODEL` (defaults to `large-v2`).
 
 ---
 
 ## PDF pipeline
 
-Each session folder produces a single paginated PDF from three (or four) markdown files. The renderer is pure Python — no LaTeX or Pandoc required.
+Each session folder produces a single paginated PDF from the four markdown deliverables. The renderer is pure Python — no LaTeX or Pandoc required. Any standalone `*-handout.md` files in the folder (in-fiction letters, props) are additionally built as their own PDFs.
 
 ### Session file naming
 
@@ -149,11 +161,12 @@ The slug is inferred from the filename. Name files consistently:
 sessions/session 3/the-haunted-mill-1-adventure.md
 sessions/session 3/the-haunted-mill-2-combat-tracker.md
 sessions/session 3/the-haunted-mill-3-player-handouts.md
-sessions/session 3/the-haunted-mill-4-dm-quick-ref.md   # optional
-sessions/session 3/images.json
+sessions/session 3/the-haunted-mill-4-dm-quick-ref.md
+sessions/session 3/images/images.json
+sessions/session 3/images/<slug>.jpg
 ```
 
-`images.json` is a list of `{"url", "description", "aspect_ratio"}` objects — one per image embedded in the markdown files. It lets the renderer size images correctly without re-fetching metadata at build time.
+`images/images.json` is a list of `{"url", "description", "aspect_ratio", "file"}` objects — one per image embedded in the markdown files. It lets the renderer size images correctly without re-fetching metadata at build time, and the `file` key points at a git-tracked local jpg so the PDF still builds after the image host URL expires.
 
 ### Building a PDF
 
@@ -223,13 +236,18 @@ To disable it: **Settings → Appearance → CSS snippets → dnd-print → togg
 
 ## AI agent
 
-`agents.md` contains instructions for the **Campaign Keeper** agent — an AI assistant you attach to this repo (e.g. via Claude Code or a compatible agent client). It knows:
+`AGENTS.md` contains instructions for the **Campaign Keeper** agent — an AI assistant you attach to this repo (e.g. via Claude Code or a compatible agent client). `CLAUDE.md` is a symlink to it, so Claude Code picks up the same instructions automatically. It knows:
 
 - The campaign's source hierarchy: campaign files take precedence over sourcebook extracts, which take precedence over general D&D knowledge
 - Which files to read for world state, faction status, NPC roster, and party details
 - How to stay canon-first and flag when it's adding DM-invented content
+- Working conventions: stay on `main`, don't commit unless asked, and scope sessions to ~2 hours of table time
 
 `dnd-adventure-generator.md` contains the multi-step workflow the agent follows to generate a new session adventure: scope → outline → images → markdown files → session bible → PDF.
+
+### Claude Code on the web
+
+`.claude/settings.json` configures the sandbox for [Claude Code on the web](https://code.claude.com/docs/en/claude-code-on-the-web): it allowlists `api.anthropic.com` for the transcript/session-log scripts and permits `WebFetch`. Add your image-generation MCP host (and any other services your agent calls) to `sandbox.network.allowedDomains` as needed. Keep personal overrides in `.claude/settings.local.json`, which stays gitignored.
 
 ---
 
