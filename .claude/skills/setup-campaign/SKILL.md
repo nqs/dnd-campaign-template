@@ -1,12 +1,12 @@
 ---
 name: setup-campaign
-description: First-time campaign setup for this D&D vault — choose a pre-built setting from the settings/ library (e.g. Forgotten Realms) and install its reference material, or generate a custom homebrew setting. Use when the user is setting up the vault for the first time, says "set up my campaign", "choose a setting", "pick a setting", "start a new campaign", or asks which settings are available.
+description: First-time campaign setup for this D&D campaign repo — choose a pre-built setting from the settings/ library (e.g. Forgotten Realms) and install its reference material, or generate a custom homebrew setting. Use when the user is setting up the repo for the first time, says "set up my campaign", "choose a setting", "pick a setting", "start a new campaign", or asks which settings are available.
 ---
 
 # Setup Campaign
 
 Run the one-time setup that gives a fresh clone of this template a **setting**: either a
-pre-built one from `settings/` (whose reference material is installed into the vault) or
+pre-built one from `settings/` (whose reference material is installed into the repo) or
 a custom homebrew world (whose lore you write directly into `campaign/`).
 
 A *setting* is reusable world canon — chiefly the sourcebook reference extracts the agent
@@ -29,14 +29,14 @@ manifest's YAML frontmatter, collect `name`, `slug`, `system`, and `references`,
 one-paragraph blurb beneath the heading. Do **not** hard-code the list — always scan, so
 settings added later are picked up automatically.
 
-### 2. Check current vault state
+### 2. Check current repo state
 
 Before offering choices, look at what's already installed so you can warn before
 clobbering anything:
 
 - Does top-level `references/` already contain installed guides (anything beyond its
   `README.md`)?
-- Are the `campaign/` bible files still the blank template (placeholders in
+- Are the `campaign/` guide files still the blank template (placeholders in
   `[square brackets]`), or has the user already written real content?
 
 If a setting already looks installed, surface that and confirm before overwriting.
@@ -54,7 +54,7 @@ When the user picks a setting with slug `<slug>`:
 
 1. Re-read `settings/<slug>/setting.md` for the exact `references` list and any seed
    guidance.
-2. Copy each bundled reference guide into the vault's top-level `references/`:
+2. Copy each bundled reference guide into the repo's top-level `references/`:
    ```bash
    cp -r "settings/<slug>/references/<guide>" "references/<guide>"
    ```
@@ -62,7 +62,7 @@ When the user picks a setting with slug `<slug>`:
    `<guide>/_raw/{full.md,pages/,images/}` layout — the agent reads canon from those
    exact paths (per `AGENTS.md` → *Source Hierarchy*). These extracts can be large
    (hundreds of files / 100s of MB); that is expected.
-3. Do **not** touch the `campaign/` bible — a pre-built setting installs reference canon
+3. Do **not** touch the `campaign/` guide — a pre-built setting installs reference canon
    only. The user writes their own world/party/sessions on top of it.
 4. Optionally offer to seed `campaign/world.md`'s **Setting Name** line with the
    setting's name (and `suggested_start` region, if the manifest has one). Only edit if
@@ -73,7 +73,7 @@ When the user picks a setting with slug `<slug>`:
 ### 4b. Generate a custom setting
 
 When the user chooses a custom homebrew world, do **not** install bundled references.
-Instead, interview the user and write their answers into the `campaign/` bible, following
+Instead, interview the user and write their answers into the `campaign/` guide, following
 the canon conventions in `AGENTS.md` (Source Hierarchy, "Canon First, Invention Second",
 and never silently overwriting). Work the template files in this order, asking only for
 what you can't reasonably infer:

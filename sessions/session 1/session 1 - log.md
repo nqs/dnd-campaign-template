@@ -1,18 +1,8 @@
----
-title: Session 1 Log
-type: session-log
-tags:
-  - sessions
-  - log
-  - campaign/session-1
-session: "001"
----
-
 # Session 1 — [Adventure Title]
 
 **Date played:** *[YYYY-MM-DD]*
 **Players present:** *[Names]*
-**Adventure file:** [[sessions/session 1/[slug]-1-adventure|[Adventure Title]]]*
+**Adventure file:** [Adventure Title]([slug]-1-adventure.md)
 
 ---
 

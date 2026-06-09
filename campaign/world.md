@@ -1,12 +1,3 @@
----
-title: World
-type: world
-tags:
-  - world
-  - lore
-  - setting
----
-
 # World Overview
 
 ## Setting Name
@@ -69,7 +60,8 @@ tags:
 - *[Conflict 1]* — *[Brief description of the tension and who's involved]*
 - *[Conflict 2]* — *[Brief description]*
 
-> [!hook] The "News of the Day"
+> [!TIP]
+> **Hook:** The "News of the Day"
 > *[What are ordinary people in the party's starting location talking about? 2–3 rumors that ground the world in everyday concerns and can feed into session hooks.]*
 
 ---

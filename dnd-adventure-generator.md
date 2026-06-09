@@ -1,6 +1,6 @@
 # D&D 5e Adventure Generator
 
-This file defines the procedure the agent follows to produce print-ready D&D 5e adventures, encounters, NPCs, and stat blocks. The primary deliverable is a set of Obsidian markdown files with AI-generated portraits and maps embedded by URL; printable PDFs are compiled from those markdown files as a separate, opt-in step.
+This file defines the procedure the agent follows to produce print-ready D&D 5e adventures, encounters, NPCs, and stat blocks. The primary deliverable is a set of GitHub-flavoured Markdown files with AI-generated portraits and maps embedded by URL; printable PDFs are compiled from those markdown files as a separate, opt-in step.
 
 This is a **preparation tool**, not an interactive DM. Do not simulate gameplay, roll dice, or track party state across sessions. Produce content the DM can read at the table.
 
@@ -9,6 +9,7 @@ This is a **preparation tool**, not an interactive DM. Do not simulate gameplay,
 These cross-cutting rules hold throughout the workflow and the PDF pipeline. The sections below restate the section-specific details, but these are the canonical statements — when in doubt, follow these.
 
 - **Four deliverables.** Every adventure produces four markdown files in `sessions/session <N>/`: `-1-adventure`, `-2-combat-tracker`, `-3-player-handouts`, `-4-dm-quick-ref`. They are the source of truth; the PDF renders **from** them and never adds narrative that isn't in the markdown.
+- **Session landing page.** Alongside the four print deliverables, every session also gets a wiki-facing landing page, `<slug>-0-overview.md`, in the same folder. It opens with a 3–5 sentence summary of the session (the planned major beats while unplayed, what actually happened once played) and then links onward to the session's own files, its images, and its other assets. It is the page the wiki **Sessions** index points at, and the entry point a reader lands on for that session. Its summary is *held to planned beats until the session is played* and refreshed from the post-play log afterward — the same lifecycle gate as `campaign/session-log.md`. Full spec in the **Session Landing Page** section.
 - **Image placement.** File 1 carries exactly one image (the title page illustration). Tactical/encounter maps live in **File 2 only**, as part 6 of each encounter's section. Every other illustration (portraits, monster art, location scenes) lives in **File 3 only**. Stat-block cards are **text-only** — never embed an image in or beside one.
 - **Image rendering.** Every image renders **full-page on an 8.5"×11" sheet**, preserving aspect ratio — no inline/thumbnail variant. Max **7.2"×9.8"** unbound; max **7.2"×8.5"** when bound to a heading via `KeepTogether`. Aspect ratios come from `images.json`; there is no PIL/Pillow.
 - **Image source & durability.** All art comes from the `generate_image` (Gemini) MCP tool. Save each as a git-tracked jpg and record its filename in `images.json` under `file`. The ReportLab renderer reads that local jpg, so a scripted PDF still builds after the Gemini URL expires (~30 days).
@@ -33,7 +34,7 @@ For adventures or encounters, confirm the party size and level before generating
 
 Draft the overall idea and plot, and ask for changes. Once that's locked, provide an outline with short descriptions of each encounter or area. Ask for revisions — or whether the user is ready to generate images.
 
-When the outline needs setting canon (a city, faction, deity, recurring NPC), pull it from the markdown extracts in `references/<sourcebook>/_raw/` (use `full.md` or `pages/page-NNNN.md`; figures are in `images/`). These extracts are the only canon source — the original PDFs are not needed once extracted. Source-hierarchy and citation rules live in `AGENTS.md`.
+When the outline needs setting canon (a city, faction, deity, recurring NPC), pull it from the markdown extracts under `references/<sourcebook>/_raw/` (use `full.md` or `pages/page-NNNN.md`; figures are in `images/`). These extracts are the working canon source. Source-hierarchy and citation rules live in `AGENTS.md`.
 
 Stay in this loop until the user explicitly says to move to images. Don't jump to image generation on your own.
 
@@ -52,7 +53,7 @@ Rules for this step:
 - If Gemini fails after a single retry, skip that image and tell the user. Never fall back to a placeholder.
 - Extract the hosted URL from each tool result. Do **not** extract or decode base64 data — Gemini's URLs are valid for 30 days and are the source of truth.
 - Before generating the first image, create an `images/` subfolder inside `sessions/session <N>/`.
-- Save each generated image as a jpg file in `sessions/session <N>/images/` using a slugified form of the description as the filename (e.g., `guard-captain-portrait.jpg`). If the tool writes a local file, move it there; otherwise download the image from the URL. The local jpg is committed to git and is the **durable** copy: the PDF renderer reads it directly, so the adventure still builds after the Gemini URL expires (~30 days).
+- Save each generated image as a jpg file in `sessions/session <N>/images/` using a slugified form of the description as the filename (e.g., `village-elder-portrait.jpg`). If the tool writes a local file, move it there; otherwise download the image from the URL. The local jpg is committed to git and is the **durable** copy: the PDF renderer reads it directly, so the adventure still builds after the Gemini URL expires (~30 days).
 - Keep a running list of `{description, url, aspect_ratio, file}` for every image generated, where `file` is that saved jpg's filename. Persist it as `sessions/session <N>/images/images.json` so the markdown files and the PDF renderer can both reference image sizes without re-querying Gemini, and so the renderer can locate the local jpg. This list is the handoff to Step 5.
 - Present images to the user by referencing the URLs. Ask for regenerations, changes, or approval to author the markdown files.
 
@@ -60,27 +61,18 @@ Rules for this step:
 
 Once images are approved, write four markdown files into `sessions/session <N>/` (the next session number after the highest-numbered existing folder). These are the **primary deliverable** — what the user reviews, edits, and reads at the table. PDF compilation is a separate, opt-in step.
 
-Naming pattern, slugified from the adventure title (e.g., *The Stolen Shipment* → `the-stolen-shipment`):
+Naming pattern, slugified from the adventure title (e.g., *The Second Cleft* → `the-second-cleft`):
 
 1. `<slug>-1-adventure.md` — main body
 2. `<slug>-2-combat-tracker.md` — DM combat tracker
 3. `<slug>-3-player-handouts.md` — player handout appendix
 4. `<slug>-4-dm-quick-ref.md` — DM quick reference cheat sheet
 
-Each file starts with YAML frontmatter:
+Each file opens directly with its `#` H1 title — **no YAML frontmatter**. Frontmatter renders as a stray block at the top of GitHub/wiki pages, so it is intentionally omitted. The PDF pipeline needs none of it: it derives each file's section from the filename suffix (`-1-adventure`, `-2-combat-tracker`, `-3-player-handouts`, `-4-dm-quick-ref`) and the PDF title from File 1's first `#` heading.
 
-```yaml
----
-tags: [campaign/session-<N>, <section-tag>, dnd-5e]
-session: "<NNN>"
-adventure: <Adventure Title>
-section: <main-body|combat-tracker|player-handouts|dm-quick-ref>
----
-```
+The session number, where it appears (the quick-ref `*Session NNN*` line), uses a zero-padded three-digit form (e.g. `003`), while the folder is `sessions/session <N>` with the bare number (e.g. `session 3`). Both refer to the same session.
 
-The session number appears in two intentionally different forms: the folder is `sessions/session <N>` with the bare number (e.g. `session 3`), while the `session:` frontmatter key and the quick-ref `Session NNN` line use a zero-padded three-digit form (e.g. `003`). Both refer to the same session; the padding keeps frontmatter values sorting correctly.
-
-The adventure file may add `tier`, `party_level`, and `duration` keys. Inline images use standard markdown `![Caption](https://…)` referencing the Gemini URLs from Step 4 — never download or rehost. (The ReportLab renderer prefers the git-tracked local jpg via the `images.json` `file` key, so a scripted PDF still builds after a URL expires; the Obsidian-native export path renders the embedded URL and so depends on it still being live.) Use vanilla Obsidian markdown (tables, headers, lists, fenced code). Do not use Fantasy Statblocks or Admonition syntax unless the user has explicitly asked for them; the print/export pipelines assume plain markdown.
+Inline images use standard markdown `![Caption](https://…)` referencing the Gemini URLs from Step 4 — never download or rehost. (The ReportLab renderer prefers the git-tracked local jpg via the `images.json` `file` key, so a scripted PDF still builds after a URL expires; on-screen GitHub rendering uses the embedded URL and so depends on it still being live.) Use plain GitHub-flavoured Markdown (tables, headers, lists, fenced code, and the five GitHub alert types). Do not use Fantasy Statblocks or Obsidian Admonition syntax; the print/export pipelines assume plain markdown.
 
 **File 1 — `<slug>-1-adventure.md`:** opens with a **full-page title page**, then the adventure narrative — summary, scenes, encounters, NPCs, treasure, loose ends.
 
@@ -92,46 +84,48 @@ The title page is the **only image in File 1**. Structure it as:
 
 No other images appear anywhere else in File 1 — no portraits, no monster art, no scene illustrations, no additional maps. The title page illustration URL is reused in File 3 under its location section; the `images.json` entry is not duplicated. All other imagery lives in File 2 (maps) or File 3 (everything else).
 
-**File 2 — `<slug>-2-combat-tracker.md`:** for every combat encounter, content is rendered in this **strict order**: (1) combat title heading, (2) italic subtitle line, (3) encounter summary table, (4) initiative table + tracker sheet sections, (5) stat-block cards for every non-PC combatant with round-by-round actions, (6) a **hard page break followed by a full-page tactical map on its own page**. See the Combat Tracker section below for the full specification. A tactical map is **required** for every combat encounter — do not author a combat encounter entry without one. Tactical maps live in File 2 **only** — never in File 1 or File 3. NPC portraits live in File 3 **only** — never in File 2. Tracker sheets and stat-block cards are expressed as markdown tables. HP boxes, round counters, and spell slots use the `☐` glyph (Obsidian renders it; the PDF font does not — see PDF rules).
+**File 2 — `<slug>-2-combat-tracker.md`:** for every combat encounter, content is rendered in this **strict order**: (1) combat title heading, (2) italic subtitle line, (3) encounter summary table, (4) initiative table + tracker sheet sections, (5) stat-block cards for every non-PC combatant with round-by-round actions, (6) a **hard page break followed by a full-page tactical map on its own page**. See the Combat Tracker section below for the full specification. A tactical map is **required** for every combat encounter — do not author a combat encounter entry without one. Tactical maps live in File 2 **only** — never in File 1 or File 3. NPC portraits live in File 3 **only** — never in File 2. Tracker sheets and stat-block cards are expressed as markdown tables. HP boxes, round counters, and spell slots use the `☐` glyph (GitHub renders it; the PDF font does not — see PDF rules).
 
 **File 3 — `<slug>-3-player-handouts.md`:** opens with a **"Where We Left Off" recap page** (see the **Session Recap Page** section below), then **every non-tactical image generated in Step 4** — NPC portraits, monster art, location scenes — each under its own `##` heading naming the subject. One image per section. This file is the **sole home** for player-facing adventure imagery: the title page illustration URL is reused here under its location section (File 1 holds the only other copy), and every portrait, monster, and location illustration the players ever see is here. **Tactical / encounter maps never appear in this file** — they live in File 2 (combat tracker) so the DM keeps them table-side without revealing the encounter layout to the players.
 
 **File 4 — `<slug>-4-dm-quick-ref.md`:** print-and-keep-at-the-table cheat sheet. Tables and short bulleted lists only — no narrative. See the **DM Quick Reference** section below for the contents and structure.
 
-Present the four file paths to the user. Stop here and wait for review. Once the user approves the markdown as canon, **proceed to Step 6 (Update the Campaign Bible) automatically — do not wait for a separate ask.** Do **not** proceed to Step 7 (PDF compilation) unless the user explicitly asks for it.
+**Plus File 0 — `<slug>-0-overview.md` (session landing page):** once the four files above are drafted, author the session's wiki landing page. Because the session has not been played yet at authoring time, its summary states the **planned major beats** and is flagged *Not yet played*; it then links to the four files above and to every image and other asset in the session folder. It is the page the wiki **Sessions** index points at. After the session is played, its summary is refreshed from the post-play log (see Step 6). Full spec in the **Session Landing Page** section.
 
-### 6. Update the Campaign Bible
+Present the file paths — the four print deliverables plus the `-0-overview` landing page — to the user. Stop here and wait for review. Once the user approves the markdown as canon, **proceed to Step 6 (Update the Campaign Guide) automatically — do not wait for a separate ask.** Do **not** proceed to Step 7 (PDF compilation) unless the user explicitly asks for it.
 
-Once the four markdown files are approved as canon, the campaign bible must be updated to reflect the new content. **Treat this as a required step in the generation workflow, not an optional follow-up.** Different files update at different points in the session lifecycle — call out the timing distinction explicitly to the user when proposing changes.
+### 6. Update the Campaign Guide
+
+Once the four markdown files are approved as canon, the campaign guide must be updated to reflect the new content. **Treat this as a required step in the generation workflow, not an optional follow-up.** Different files update at different points in the session lifecycle — call out the timing distinction explicitly to the user when proposing changes.
 
 **Update immediately, before the session is played:**
 
 - **`campaign/roster.md`** — full entries for any new recurring NPCs (role, affiliation, location, status, one-line summary, appearance, personality, motivations, party relationship, statline reference pointing to `<slug>-2-combat-tracker.md` by wikilink). Add new edges to the NPC Relationship Web. Promote any noteworthy mechanical details that the DM will want at-a-glance during play (a recurring NPC's bargain matrix, a vendetta flag, a faction-link callout) so they live in the roster, not buried in the session file.
 - **`campaign/factions.md`** — new faction intelligence, organizational details, retaliation clocks, doctrinal signatures, iconography, and references to any homebrew stat blocks introduced in the combat tracker (link by wikilink). When the new content extends an existing faction section, expand that section in place rather than appending a parallel one.
-- **`campaign/geography.md`** — new permanent locations, dungeon sites, regional landmarks, or travel routes. Place under the **DM Additions** section, tag `(DM ADDITION)`, and add a source-notes callout when the surrounding region is canonical FR so the DM/CG/PG provenance is clear.
+- **`campaign/geography.md`** — new permanent locations, dungeon sites, regional landmarks, or travel routes. Place under the **DM Additions** section, tag `(DM ADDITION)`, and add a source-notes callout when the surrounding region is canonical so the sourcebook provenance is clear.
 
 **Hold until after the session is actually played:**
 
-- **`campaign/session-log.md`** — Session Index row, Campaign Arc refresh, Recent Session pointer, Loose Ends Tracker resolutions, Foreshadowing Log entries. **Do not write session-log entries based on planned content — only on what actually happened at the table.** State this hold explicitly to the user when proposing the pre-play bible updates so they know `campaign/session-log.md` is intentionally untouched. The user runs the session, then asks for a post-play log update as a separate request. **Never copy read-aloud / spoke text from the session plan into any session log** — summarize what happened in plain prose instead. Read-aloud text is a DM preparation artifact; it is not a record of what occurred.
+- **`campaign/session-log.md`** — Session Index row, Campaign Arc refresh, Recent Session pointer, Loose Ends Tracker resolutions, Foreshadowing Log entries. **Do not write session-log entries based on planned content — only on what actually happened at the table.** State this hold explicitly to the user when proposing the pre-play guide updates so they know `campaign/session-log.md` is intentionally untouched. The user runs the session, then asks for a post-play log update as a separate request. **Never copy read-aloud / spoke text from the session plan into any session log** — summarize what happened in plain prose instead. Read-aloud text is a DM preparation artifact; it is not a record of what occurred.
+- **`sessions/session <N>/<slug>-0-overview.md`** (the session landing page) — in the same post-play pass, refresh the landing-page summary from the *planned major beats* to *what actually happened*, sourced from the new `campaign/session-log.md` entry, and flip its status line from *Not yet played* to *Played*. Add the **Session Log** link (and the **PDF** link if one was built) to its Session Files list now that those assets exist. Like the session-log itself, only do this after the session is played — never rewrite the summary to past tense for a session that hasn't happened.
 
-**Edit mode depends on agent capability.** When running with file-write access (Augment, Cursor, similar), edit the bible files directly using file-editing tools and summarize the diff back to the user. When running as a stock chat model without write access, produce copy-pasteable markdown blocks instead. In either mode, surface every change to the user, never silently modify content, and never claim a file was edited if it wasn't.
+**Edit mode depends on agent capability.** When running with file-write access (Augment, Cursor, similar), edit the guide files directly using file-editing tools and summarize the diff back to the user. When running as a stock chat model without write access, produce copy-pasteable markdown blocks instead. In either mode, surface every change to the user, never silently modify content, and never claim a file was edited if it wasn't.
 
-**Scratch files** — if the session prep produced a working scratch file (e.g., `session-<N>-plan.md`), delete it as part of this step once the four deliverables are authored and the bible is updated. The deliverables and the bible are the persistent record; the scratch plan is not.
+**Scratch files** — if the session prep produced a working scratch file (e.g., `session-<N>-plan.md`), delete it as part of this step once the four deliverables are authored and the guide is updated. The deliverables and the guide are the persistent record; the scratch plan is not.
 
-After the bible is updated, present a summary of the diff and stop. Step 7 is opt-in.
+After the guide is updated, present a summary of the diff and stop. Step 7 is opt-in.
 
 ### 7. PDF Compilation (on request)
 
 Only run this step when the user explicitly asks for PDFs. The four markdown files from Step 5 are the source of truth; the PDF is rendered **from** them. Never write narrative content into the PDF build that doesn't exist in the markdown — if something needs to change, change the markdown and rebuild.
 
-Two acceptable approaches — ask which the user prefers if it isn't already established:
+For on-screen reading, the Markdown renders directly on GitHub (repo or wiki) and in any Markdown previewer — no plugin or build step required. For a print-ready PDF, use the scripted path:
 
-- **Obsidian-native** — the user exports each markdown file via the **Better Export PDF** plugin (configured in `home.md`, with the `dnd-print.css` snippet enabled). The agent's job is to make sure the markdown renders cleanly. No script work required.
 - **ReportLab build (markdown → PDF renderer)** — for adventures that need rendered checkbox cells, parchment stat-card backgrounds, or a single combined PDF, run the reusable build script at `scripts/build_pdf.py`. It parses the four markdown files in order (`<slug>-1-adventure.md` → `<slug>-2-combat-tracker.md` → `<slug>-3-player-handouts.md` → `<slug>-4-dm-quick-ref.md`) and emits a single PDF. The script contains no duplicated narrative — narrative lives only in the markdown.
 
 The reusable scripts:
 
-- **`scripts/build_pdf.py`** — CLI entry point. Auto-discovers the session folder, slug, the markdown files (the three required plus the optional file 4 when present), `images.json`, and PDF title (from the adventure file's `adventure:` frontmatter key). Do not copy this into the session folder; invoke it from the repo root.
+- **`scripts/build_pdf.py`** — CLI entry point. Auto-discovers the session folder, slug, the markdown files (the three required plus the optional file 4 when present), `images.json`, and PDF title (from the adventure file's first `#` heading). Do not copy this into the session folder; invoke it from the repo root.
 - **`scripts/md_to_pdf.py`** — the markdown→Platypus renderer (page styles, AST walker, checkbox replacement, stat-card and init-table special cases). Imported by `build_pdf.py`. Session-agnostic; do not copy or fork per session.
 
 ReportLab build rules (these describe what `scripts/md_to_pdf.py` already implements; touch the script if any of these need to change, never reimplement per session):
@@ -150,7 +144,7 @@ ReportLab build rules (these describe what `scripts/md_to_pdf.py` already implem
 - **Image sizing.** Every image renders **full-page on an 8.5"×11" sheet** — sized to fill the printable area while preserving aspect ratio. Max 7.2"×9.8" for an unbound image; max 7.2"×8.5" when bound to a heading via `KeepTogether` (so the heading + image fit one page). Step 4 captures `{description, url, aspect_ratio, file}` for each image; persist that list as `images/images.json` in the session folder so the renderer can letterbox correctly without re-querying Gemini. Lookup is by URL; the renderer reads the local `file` when present (durable, expiry-proof) and only fetches the URL as a fallback. If a URL isn't found in the manifest, fall back to a 4:3 default and warn. Generate every image at high enough resolution to print at full size.
 - **Page-break placement.** The renderer aims to keep the page filled. Concretely: each section heading immediately followed by an image is bound to that image (`KeepTogether`) so the heading isn't orphaned on an otherwise-empty page; an image not bound to a heading flows naturally — ReportLab page-breaks before it if it doesn't fit in the remaining space, but a short landscape image will render below trailing text rather than force a near-empty page. Adjacent page breaks are coalesced (no blank pages), and body paragraphs use `allowWidows=0` / `allowOrphans=0` so a paragraph can't leave one stray line at the top of an otherwise-empty page. In the combat-tracker file, each encounter (`## Encounter N`) still gets its own page boundary so the tracker sheet stays organized; in the adventure and player-handout files, H2 sections flow naturally so two short entries (e.g., two landscape-image handouts) can share a page.
 - **Output:** single PDF at `sessions/session <N>/<adventure-slug>.pdf` (the slug is derived from `<slug>-1-adventure.md`).
-- **Run:** from the repo root, `.venv/bin/python scripts/build_pdf.py [<session-number-or-folder>]`. With no argument it builds the latest session; pass `3` or `"sessions/session 3"` to target a specific one. Optional `--title` and `--out` flags override the auto-detected title and output path. Tell the user the PDF path on completion; the user opens it themselves in Obsidian or Finder.
+- **Run:** from the repo root, `.venv/bin/python scripts/build_pdf.py [<session-number-or-folder>]`. With no argument it builds the latest session; pass `3` or `"sessions/session 3"` to target a specific one. Optional `--title` and `--out` flags override the auto-detected title and output path. Tell the user the PDF path on completion; the user opens it themselves in their browser or Finder.
 - **Dependencies:** `mistune` and `reportlab`, installed into a project venv at `.venv/`. If the venv is missing, create it once with `python3 -m venv .venv && .venv/bin/python -m pip install mistune reportlab`. Do not install into the system Python (Homebrew Python is PEP 668 externally-managed).
 
 ## Text Standards
@@ -181,7 +175,7 @@ Never use any built-in vector drawing tool or any Python-drawn graphics for adve
 - Images flow through from the markdown only — the renderer does not insert images that aren't already in the source files. File 1 carries exactly one image: the title page illustration, which renders full-page immediately after the title heading and summary table, followed by a `---` page break before the narrative begins. Every portrait, monster art, and remaining scene illustration renders inside the handout appendix (File 3), each under its own subheading. Tactical maps render from File 2 **only**, and always **last in their encounter section** — after the tracker sheet and all stat-block cards — on their **own full page**, preceded by a hard page break (`---`). NPC and monster portraits **never** appear in File 2; stat-block cards in the combat tracker are text-only.
 - **Every image renders full-page** (see **Invariants** for the sizing rule). The renderer page-breaks before and after each `![alt](url)` and sizes the image to fill the printable area while preserving its aspect ratio.
 - Images load at PDF build time from the git-tracked local jpg (via the `images.json` `file` key), falling back to the Gemini URL when no local copy is present.
-- Final PDF output goes to `sessions/session <N>/<adventure-slug>.pdf`. The user opens it in Obsidian or Finder; do not attempt to invoke a presentation tool.
+- Final PDF output goes to `sessions/session <N>/<adventure-slug>.pdf`. The user opens it in their browser or Finder; do not attempt to invoke a presentation tool.
 
 ### Session folder layout
 
@@ -189,6 +183,7 @@ Each session lives in `sessions/session <N>/` with this file layout:
 
 **Markdown deliverables (always produced — Step 5):**
 
+- `<adventure-slug>-0-overview.md` — session landing page: 3–5 sentence summary plus links to the files, images, and assets below.
 - `<adventure-slug>-1-adventure.md` — main adventure body.
 - `<adventure-slug>-2-combat-tracker.md` — per-encounter trackers and stat-block cards.
 - `<adventure-slug>-3-player-handouts.md` — labeled images, one per section.
@@ -203,7 +198,7 @@ Each session lives in `sessions/session <N>/` with this file layout:
 
 - `<adventure-slug>.pdf` — the build output. Produced by `scripts/build_pdf.py` from the markdown files plus `images/images.json`.
 
-The build scripts themselves live at the repo root, not per-session: `scripts/build_pdf.py` (CLI entry point) and `scripts/md_to_pdf.py` (markdown→Platypus renderer). Do not copy them into the session folder. The old per-session `build_pdf_content.py`, `combat_tracker.py`, `combat_stat_blocks.py`, and `combat_render.py` modules are no longer used either. All adventure, encounter, stat-block, and quick-reference content lives in the four markdown files; the renderer parses them.
+The build scripts themselves live at the repo root, not per-session: `scripts/build_pdf.py` (CLI entry point) and `scripts/md_to_pdf.py` (markdown→Platypus renderer). Do not copy them into the session folder. All adventure, encounter, stat-block, and quick-reference content lives in the four markdown files; the renderer parses them.
 
 ## Combat Tracker
 
@@ -286,7 +281,7 @@ These rules are **single-pass and pattern-based** — the renderer recognizes sh
 
 ### PDF rendering rules
 
-- **Replace every `☐` glyph with a rendered bordered cell.** Times-Roman does not carry the ballot-box glyph and falls back to a filled square. The renderer's checkbox helper substitutes empty-bordered cells of a fixed point size. (The markdown file keeps `☐` because Obsidian renders it correctly — this rule is PDF-only.)
+- **Replace every `☐` glyph with a rendered bordered cell.** Times-Roman does not carry the ballot-box glyph and falls back to a filled square. The renderer's checkbox helper substitutes empty-bordered cells of a fixed point size. (The markdown file keeps `☐` because GitHub renders it correctly — this rule is PDF-only.)
 - **Pre-roll NPC initiative** so it is printed in the markdown, and the PDF inherits it. PCs roll live and write into the blank rows. Use the average of `1d20 + DEX_mod` rounded to the nearest integer.
 - **HP tick boxes** use 5 HP per box, ceiling-rounded. Print the total HP next to the boxes (e.g., `HP 78`) so the DM can confirm.
 - **Spell-slot tick boxes** match the level's slot count exactly. Cantrips have no boxes.
@@ -311,10 +306,9 @@ Source the recap from `campaign/session-log.md` (the most recent played-session 
 - **One image** at the top: a scene illustration of the location the PCs are starting this session at. This is usually the same location they ended the previous session at (a cold camp, the doorway of a dungeon they didn't enter, the road outside a town). Generate it in Step 4 like any other location image, with `aspect_ratio="16:9"`, and add it to `images/images.json`. It also gets its own `## <Location Name>` section later in the handout file like any other location image — the recap reuses the URL, it does not duplicate the entry in `images.json`.
 - **Brief recap prose** — 4–8 short sentences or bullet points covering: where the party is now, what they accomplished last session, what they learned, and the immediate decision in front of them. Bold the key facts. No spoilers for the new adventure.
 - Optional **"What Now?"** bulleted list of 1–3 immediate hooks or choices, framed as the party's options at the table.
-- Frontmatter stays the standard player-handouts block (`section: player-handouts`); no separate section tag.
 - Followed by a `---` thematic break, then the rest of the handout entries.
 
-The recap is a player-facing artifact — write it in the second person ("You uncovered the cultist's hidden altar…"), keep the tone tight, and avoid DM-only information (faction maneuvering the party hasn't seen, hidden NPC motivations, future encounter setups).
+The recap is a player-facing artifact — write it in the second person ("You barred the gate behind you and made camp in the ruined gatehouse…"), keep the tone tight, and avoid DM-only information (faction maneuvering the party hasn't seen, hidden NPC motivations, future encounter setups).
 
 ## DM Quick Reference
 
@@ -337,9 +331,37 @@ Adapt the section list to the adventure's actual content — don't include secti
 
 ### Form
 
-- Frontmatter: `section: dm-quick-ref`, plus the standard `tags`, `session`, `adventure` keys.
 - Title: `# DM Quick Reference — <Adventure Title>` followed by an italic line: `*Session NNN · Print and keep at the table · Full detail in file 1*`.
 - Each section is a level-2 heading separated by `---` thematic breaks.
 - No inline images. No long prose blocks. If a sentence runs more than two lines, it belongs in File 1.
 - Cross-references to File 1 are by scene number / scene name, not by page.
 - Numbers must match File 1 and File 2 exactly. If something changes in the adventure, update the cheat sheet in the same edit.
+
+## Session Landing Page
+
+Every session gets a **landing page** — `<slug>-0-overview.md` in the session folder — that serves as the session's front door in the wiki. The wiki **Sessions** index (in `Home.md`, `README.md`, and `_Sidebar.md`) links to this page, not to the raw adventure file; from here a reader gets the gist in a few sentences and then jumps to the adventure, the other deliverables, the images, and the rest of the session's assets. It is short by design: a summary plus a link directory, never a second copy of the adventure.
+
+The `-0-` prefix sorts it ahead of the four numbered deliverables and keeps its basename unique, which matters because `scripts/build_wiki.py` flattens every page to its basename. No build-script change is needed — the wiki sync already publishes any new `.md` under `sessions/`.
+
+### Form
+
+- **Title** — a level-1 heading: `# Session NNN — <Adventure Title>` (zero-padded session number; title from File 1's `#` heading).
+- **Metadata line** — one italic line with the at-a-glance frame: `*<Tier> · <Party Level> · <Setting>*`. Keep it to one line; full detail lives in File 1's title-page table.
+- **Status line** — a bold `**Status:**` line stating **✅ Played** or **⏳ Not yet played**. For an unplayed session, append a clause noting the summary reflects *planned major beats, not a record of play*.
+- **Summary** — **3–5 sentences.** If the session has been played, summarize *what actually happened*, sourced from the `campaign/session-log.md` entry (or the per-session `session N - log.md`). If it has **not** been played yet, summarize the **major plot points / planned beats** instead, and the Status line must mark it unplayed. Bold the key names and outcomes. Do not paste read-aloud text; write plain prose.
+- **`## Session Files`** — a bulleted link directory to the session's own pages, in deliverable order. Bold the adventure link and label it as "the session itself." Include only the files that exist:
+  - **Adventure** → `<slug>-1-adventure.md` (the session itself). If an old session has only a PDF and no adventure markdown, link the PDF here instead.
+  - **Combat Tracker** → `<slug>-2-combat-tracker.md`
+  - **Player Handouts** → `<slug>-3-player-handouts.md`
+  - **DM Quick Reference** → `<slug>-4-dm-quick-ref.md`
+  - **Session Log** → `session N - log.md` (only once the session is played and the log exists)
+  - **Printable PDF** → `<slug>.pdf` (only once a PDF has been built)
+- **`## Images`** — link every image in `images/images.json`: link text is the entry's `description`, link target is `images/<file>`. Group **Tactical maps** (descriptions beginning `Tactical Map`) separately from **Portraits & scenes** under bold sub-labels. Omit the section entirely if the session has no images. (Link the image files, not `images.json` itself.)
+- **`## Other Assets`** — link any remaining session assets that are not deliverables or images: the audio recording (`.m4a`), a `.txt` transcript, etc. Omit if there are none. (Do not link `*.m4a.md` machine transcripts or `images.json` — the wiki build does not publish them, so those links would dead-end.)
+- **Footer** — a `---` rule, then a back-link line: `[← Session Index](../../campaign/session-log.md) · [Home](../../Home.md)`.
+
+### Linking & wiki rules
+
+- Use **relative links** so they resolve both in the repo file browser and after `build_wiki.py` rewrites them for the wiki. Same-folder deliverables are linked by bare filename (`<slug>-1-adventure.md`); the session log's spaces are URL-encoded (`session%203%20-%20log.md`); images are `images/<file>.jpg`; the footer reaches the campaign guide with `../../`.
+- Only link targets the wiki build can resolve: emitted `.md` pages (everything under `sessions/` except `*.m4a.md`), the external asset types it rewrites to repo blob URLs (`.pdf`, `.m4a`, `.txt`, `.jpg`/`.jpeg`/`.png`), and `campaign/*` pages. Avoid linking `images.json` (`.json` is neither) or `*.m4a.md` (not published).
+- The page is **authored in Step 5** with the planned-beats summary and the asset links, and **refreshed in the post-play pass** (Step 6's held bucket) to record what happened, flip the status to Played, and add the now-existing log/PDF links.

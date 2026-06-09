@@ -1,6 +1,6 @@
 # Settings library
 
-Pre-built **campaign settings** you can install into the vault, plus the home for any
+Pre-built **campaign settings** you can install into the repo, plus the home for any
 custom setting you generate. A "setting" here is the reusable **world canon** for a
 campaign — primarily the sourcebook reference extracts the agent treats as published
 canon. It is *not* a specific campaign: it carries no party, no NPC roster, and no
@@ -13,9 +13,9 @@ On first setup you pick one stored setting (or generate a custom one). The
 ask the agent to "set up my campaign" / "choose a setting." It is also fine to do the
 copy by hand — the skill is a convenience, not a requirement.
 
-Installing a setting copies its `references/` into the vault's top-level `references/`
+Installing a setting copies its `references/` into the repo's top-level `references/`
 directory, so the agent finds canon at the standard path (`references/<guide>/_raw/…`)
-described in `AGENTS.md`. The campaign bible under `campaign/` is left as the blank
+described in `AGENTS.md`. The campaign guide under `campaign/` is left as the blank
 template for you to fill in.
 
 ## Layout
@@ -50,5 +50,5 @@ setup skill reads to present and install the setting.
 3. The setting now appears as an install option for the `setup-campaign` skill.
 
 Generating a brand-new homebrew setting instead? Use the `setup-campaign` skill's
-**custom setting** path — it interviews you and fills in the `campaign/` bible directly
+**custom setting** path — it interviews you and fills in the `campaign/` guide directly
 rather than installing pre-built references.

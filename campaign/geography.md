@@ -1,15 +1,7 @@
----
-title: Geography
-type: reference
-tags:
-  - geography
-  - locations
-  - reference
----
-
 # Geography — Campaign Reference
 
-> [!cite] Source key
+> [!NOTE]
+> **Source key**
 > Entries marked **(Sourcebook)** are drawn from published sourcebooks. Entries marked **(DM ADDITION)** are campaign-specific inventions not in the sourcebooks. Replace "Sourcebook" with the name of your actual reference (e.g., "CG" for Campaign Guide).
 
 ---
