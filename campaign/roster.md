@@ -1,14 +1,7 @@
----
-title: Roster
-type: roster
-tags:
-  - npcs
-  - roster
----
-
 # NPC Roster
 
-> [!cite] Source key
+> [!NOTE]
+> **Source key**
 > **(Sourcebook)** = sourced from a published sourcebook. **(DM ADDITION)** = invented for this campaign. Replace "Sourcebook" with the name of your actual reference (e.g., "CG" for Campaign Guide, "MM" for Monster Manual).
 
 ---
@@ -33,14 +26,16 @@ tags:
 - *Wants:* *[What do they actively pursue?]*
 - *Fears:* *[What do they dread or avoid at all costs?]*
 
-> [!dm] Secret
+> [!IMPORTANT]
+> **DM:** Secret
 > *[Something this NPC knows or has done that the party doesn't know yet. Mark (DM ADDITION) if invented.]*
 
 **Relationship with the party:**
 - *First impression:* *[How do they come across at first meeting?]*
 - *What they want from the party:* *[Their immediate agenda when interacting with the PCs.]*
 
-> [!cite] Source notes
+> [!NOTE]
+> **Source notes**
 > *[Where did this NPC come from? Published sourcebook page, campaign file, or DM invention?]*
 
 ---

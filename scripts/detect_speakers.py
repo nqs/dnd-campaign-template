@@ -3,7 +3,7 @@
 
 Two-stage approach:
   1. Intro roll call: read the first N seconds and look for each speaker
-     saying their character name (e.g. "Kto", "Fiorn"). Fast and cheap.
+     saying their character name. Fast and cheap.
   2. Full-transcript inference (fallback): if the intro yields fewer than
      2 confident matches, pass the full transcript + party/roster context
      to Claude and infer who is who from class abilities, spells cast, DM
@@ -88,8 +88,8 @@ def detect_from_intro(segments: list[dict], intro_seconds: float, client: object
 
     prompt = (
         "This is the opening of a tabletop RPG session recording. "
-        "The DM asked each player to say their character's name for the recording "
-        "(e.g. 'Kto', 'Fiorn', 'Nalith'). The DM says 'DM'. "
+        "The DM asked each player to say their character's name for the recording. "
+        "The DM says 'DM'. "
         "Below are the first few minutes of the transcript, with each speaker "
         "identified by a label like SPEAKER_00, SPEAKER_01, etc.\n\n"
         f"{intro_text}\n\n"

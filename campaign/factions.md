@@ -1,14 +1,7 @@
----
-title: Factions
-type: reference
-tags:
-  - factions
-  - reference
----
-
 # Factions — Campaign Reference
 
-> [!cite] Source key
+> [!NOTE]
+> **Source key**
 > Entries marked **(Sourcebook)** draw on published sourcebooks. Entries marked **(HOMEBREW)** are campaign-specific additions not derived from published sourcebooks. Replace "Sourcebook" with the name of your actual reference.
 
 ---
@@ -56,7 +49,8 @@ tags:
 ### Tensions
 *[Internal conflicts, rival factions, things they're hiding, pressure they're under.]*
 
-> [!hook] Adventure Hooks
+> [!TIP]
+> **Adventure Hooks**
 > - *[Hook 1]*
 > - *[Hook 2]*
 > - *[Hook 3]*
@@ -76,7 +70,8 @@ tags:
 
 ### Goals
 
-> [!hook] Adventure Hooks
+> [!TIP]
+> **Adventure Hooks**
 
 ---
 
@@ -91,7 +86,8 @@ tags:
 
 ### Goals
 
-> [!hook] Adventure Hooks
+> [!TIP]
+> **Adventure Hooks**
 
 ---
 

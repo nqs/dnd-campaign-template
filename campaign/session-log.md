@@ -1,11 +1,3 @@
----
-title: Session Log
-type: log
-tags:
-  - sessions
-  - log
----
-
 # Session Log
 
 <!-- This file is the campaign-wide index. Per-session detail lives in each
@@ -37,7 +29,7 @@ tags:
 
 *[After each session, paste a quick-reference block here replacing the previous one. Format:]*
 
-**Title:** *[Session title]* · **Full log:** *[[sessions/session N/session N - log|session N - log]]*
+**Title:** *[Session title]* · **Full log:** *[session N - log](../sessions/session%20N/session%20N%20-%20log.md)*
 
 - *[Key event 1]*
 - *[Key event 2]*

@@ -1,34 +1,41 @@
 # D&D Campaign Template
 
-A reusable Obsidian vault + toolchain for running a D&D 5e campaign. Clone it, fill in the placeholders, and you have a working DM workspace with:
+A reusable GitHub repo + toolchain for running a D&D 5e campaign. Clone it, fill in the placeholders, and you have a working DM workspace with:
 
-- A structured campaign bible (world, geography, factions, NPCs, party, session log)
+- A structured campaign guide (world, geography, factions, NPCs, party, session log)
 - An AI agent configuration for session prep and adventure generation
+- A library of installable **settings** (pre-built sourcebook reference bundles) + a `setup-campaign` skill
 - A ReportLab PDF pipeline for printing session handouts
+- A GitHub Actions workflow that auto-publishes the repo content to the repo's **GitHub Wiki**
 - A GitHub Actions workflow that auto-transcribes session audio with WhisperX
-- A print stylesheet for parchment-themed exports from Obsidian
+
+Everything is plain **GitHub-flavoured Markdown** — no Obsidian, no plugins, no app to configure. You edit Markdown in the repo; the wiki and PDFs are generated from it.
 
 ---
 
 ## Getting started
 
-1. **Clone this repo** (or use it as a GitHub template) into a local folder.
-2. Open the folder as an Obsidian vault: **Obsidian → Open folder as vault → select this directory**.
-3. **Choose a setting** (see [Choosing a setting](#choosing-a-setting)). Pick a pre-built one from `settings/` — e.g. the Forgotten Realms — or generate a custom homebrew world.
-4. Fill in the placeholders in `campaign/` — start with `world.md`, then `party.md`.
-5. Rename `[Campaign Name]` references in `home.md` to your actual campaign name.
-6. Add more sourcebook PDFs to `references/` and extract them as needed (see [Reference material](#reference-material)).
+1. **Clone this repo** (or use it as a GitHub template) into a local folder, then run `git lfs install` once — binary assets (audio, PDFs, images) are tracked with Git LFS (see [Git LFS](#git-lfs)).
+2. **Choose a setting** (see [Choosing a setting](#choosing-a-setting)). Pick a pre-built one from `settings/` — e.g. the Forgotten Realms — or generate a custom homebrew world.
+3. Fill in the placeholders in `campaign/` — start with `world.md`, then `party.md`.
+4. Rename `[Campaign Name]` / `[Setting Name]` references in `Home.md`, `README.md`, and `AGENTS.md` to your actual campaign.
+5. Add more sourcebook PDFs to `references/` and extract them as needed (see [Reference material](#reference-material)).
+6. Enable the GitHub Wiki and run the sync once (see [GitHub Wiki](#github-wiki)).
 7. Set the `HF_TOKEN` secret (and, for speaker detection + drafted session logs, the `ANTHROPIC_API_KEY` secret) in your GitHub repo settings to enable auto-transcription (see [Transcription workflow](#transcription-workflow)).
+
+`AGENTS.md` holds the Campaign Keeper agent instructions; `CLAUDE.md` is a symlink to it so Claude Code picks it up automatically.
 
 ---
 
-## Vault layout
+## Repository layout
 
 ```
 <your-campaign>/
+├── README.md                       # GitHub repo landing page
+├── Home.md                         # wiki landing page + index
+├── _Sidebar.md                     # wiki navigation sidebar
 ├── AGENTS.md                       # Campaign Keeper agent instructions
 ├── CLAUDE.md                       # symlink → AGENTS.md (read by Claude Code)
-├── home.md                         # vault index + Obsidian setup guide
 ├── dnd-adventure-generator.md      # adventure generation workflow
 ├── .claude/
 │   ├── settings.json               # Claude Code sandbox/permission config
@@ -44,6 +51,7 @@ A reusable Obsidian vault + toolchain for running a D&D 5e campaign. Clone it, f
 │   └── session-log.md              # campaign-wide index + loose ends tracker
 ├── sessions/
 │   └── session <N>/                # one folder per session
+│       ├── <slug>-0-overview.md       # session landing page (wiki front door)
 │       ├── <slug>-1-adventure.md
 │       ├── <slug>-2-combat-tracker.md
 │       ├── <slug>-3-player-handouts.md
@@ -67,15 +75,38 @@ A reusable Obsidian vault + toolchain for running a D&D 5e campaign. Clone it, f
 ├── scripts/
 │   ├── build_pdf.py                # CLI: build session PDF (+ standalone handouts)
 │   ├── md_to_pdf.py                # markdown → ReportLab renderer
+│   ├── build_wiki.py               # stage repo content as a GitHub-wiki tree
+│   ├── obsidian_to_wiki.py         # one-shot Obsidian → GitHub markdown converter
 │   ├── extract_pdf.py              # PDF → markdown extractor
 │   ├── transcribe.sh               # WhisperX wrapper → formatted .md transcript
 │   ├── detect_speakers.py          # map diarized speakers to player names
 │   ├── format_transcript.py        # WhisperX JSON → readable markdown transcript
 │   └── update_session_log.py       # transcript → drafted session log (Claude)
 └── .github/workflows/
+    ├── sync-wiki.yml               # publish repo content to the GitHub Wiki
     ├── transcribe.yml              # auto-transcribe audio on push
     └── test.yml                    # CI tests for transcribe.sh
 ```
+
+---
+
+## GitHub Wiki
+
+The repo is the single source of truth; the repo's GitHub Wiki is generated from it automatically. On every push to `main` that touches wiki content, the `Sync Wiki` workflow (`.github/workflows/sync-wiki.yml`) runs `scripts/build_wiki.py` to stage a wiki-ready tree and pushes it into the repo's `*.wiki.git`. **You only ever edit this repo** — never the wiki directly.
+
+`scripts/build_wiki.py` flattens every page to the wiki's flat filename namespace (GitHub Wikis key pages by basename, not path), rewrites internal links to bare page names, and rewrites links to `references/` or `.pdf` assets back to repo blob URLs (those stay in the main repo, not the wiki).
+
+**One-time setup:** the wiki repo must exist before the Action can push to it. Enable **Settings → Features → Wikis**, then open the **Wiki** tab and click **Create the first page** once (any content). After that the sync runs on its own; you can also trigger it from **Actions → Sync Wiki → Run workflow**.
+
+### Converting legacy Obsidian content
+
+If you have content authored with Obsidian `[[wikilinks]]` or `[!type]` Admonition callouts, run the one-shot converter once to rewrite it to GitHub-flavoured Markdown (relative links + GitHub alerts):
+
+```bash
+python scripts/obsidian_to_wiki.py
+```
+
+It rewrites files under `campaign/` and `sessions/` in place and prints what changed. New content should already be authored as plain GitHub Markdown, so this is only needed for a one-time migration.
 
 ---
 
@@ -86,9 +117,9 @@ A **setting** is the reusable world canon your campaign runs in — chiefly the 
 On first setup, pick one:
 
 - **A pre-built setting** — e.g. the **Forgotten Realms**, which bundles markdown extracts of the *Forgotten Realms Campaign Guide* and *Player's Guide*. Installing it copies those extracts into the top-level `references/` so the agent has canonical lore to draw on.
-- **A custom homebrew world** — generate one from scratch; the lore gets written straight into your `campaign/` bible.
+- **A custom homebrew world** — generate one from scratch; the lore gets written straight into your `campaign/` guide.
 
-The easiest way is the **`setup-campaign` skill**: run `/setup-campaign` (or ask the agent to "choose a setting" / "set up my campaign") and it lists the available settings, installs the one you pick, and leaves your campaign bible blank to fill in. You can also install a setting by hand — just copy `settings/<slug>/references/*` into `references/`. See [`settings/README.md`](settings/README.md) for the library layout and how to add your own setting.
+The easiest way is the **`setup-campaign` skill**: run `/setup-campaign` (or ask the agent to "choose a setting" / "set up my campaign") and it lists the available settings, installs the one you pick, and leaves your campaign guide blank to fill in. You can also install a setting by hand — just copy `settings/<slug>/references/*` into `references/`. See [`settings/README.md`](settings/README.md) for the library layout and how to add your own setting.
 
 ---
 
@@ -117,7 +148,7 @@ Sourcebook PDFs live in `references/`. The agent searches extracted markdown rat
 
 ### Git LFS
 
-The committed `.gitattributes` already tracks session audio (`*.m4a`) and PDFs (`*.pdf`) with Git LFS so large binaries don't bloat the repo. To also track extracted sourcebook PDFs/PNGs under `references/`:
+Binary assets are tracked with [Git LFS](https://git-lfs.com) so large files don't bloat the repo. The committed `.gitattributes` routes session audio (`*.m4a`), PDFs (`*.pdf`), and images (`*.png`) through LFS — run `git lfs install` once per machine before adding them. To also track extracted sourcebook PDFs/PNGs under `references/`:
 
 ```bash
 git lfs track "references/**/*.pdf"
@@ -131,7 +162,7 @@ Alternatively, list the PDFs in `.gitignore` — the markdown extracts are what 
 
 ## Transcription workflow
 
-Pushing any audio file to the repo triggers a GitHub Actions job that runs [WhisperX](https://github.com/m-bain/whisperX) (speaker-diarized transcription) and commits the resulting formatted `.md` transcript alongside the audio file. When an `ANTHROPIC_API_KEY` is available, the pipeline also names the diarized speakers from a roll-call intro and drafts a session log from the transcript.
+Pushing any audio file to the repo triggers a GitHub Actions job that runs [WhisperX](https://github.com/m-bain/whisperX) (`large-v2`, speaker-diarized) and commits a formatted `.md` transcript alongside the audio file. When an `ANTHROPIC_API_KEY` is available, the pipeline also names the diarized speakers from a roll-call intro and drafts a session log from the transcript.
 
 ### Supported formats
 
@@ -146,9 +177,9 @@ Pushing any audio file to the repo triggers a GitHub Actions job that runs [Whis
 ### How it works
 
 - On every push, the workflow diffs against the previous commit and transcribes only **new or modified** audio files.
-- WhisperX diarizes the audio; `format_transcript.py` renders it to a readable markdown transcript saved as `<audio-file>.md` in the same directory.
-- If a `speakers.json`/`speakers.yaml` mapping sits next to the audio it's applied directly; otherwise `detect_speakers.py` tries to infer speaker names from a roll-call intro (requires `ANTHROPIC_API_KEY`).
-- With `ANTHROPIC_API_KEY` set, `update_session_log.py` drafts a session log from the transcript using the campaign bible for names and tone.
+- WhisperX diarizes the audio; `format_transcript.py` renders it to a readable markdown transcript saved as `<audio-file>.md` in the same directory. Machine transcripts (`*.m4a.md`) are intentionally **not** published to the wiki.
+- If a `speakers.json`/`speakers.yaml` mapping sits next to the audio it's applied directly; otherwise `detect_speakers.py` tries to infer speaker names from a roll-call intro (requires `ANTHROPIC_API_KEY`), cross-referencing `campaign/party.md` and `campaign/roster.md`.
+- With `ANTHROPIC_API_KEY` set, `update_session_log.py` drafts a session log from the transcript using the campaign guide for names and tone. Review it like any generated content — it's a draft, not canon.
 - Transcripts are committed back to the branch with `[skip ci]` to avoid a loop.
 - To backfill all audio files in the repo at once, trigger the workflow manually via **Actions → Transcribe audio → Run workflow** and check *Transcribe every audio file in the repo*.
 
@@ -227,34 +258,6 @@ Stat blocks are authored as plain markdown tables and bolded prose in the combat
 
 ---
 
-## Obsidian setup
-
-Open this folder as a vault in Obsidian, then install the community plugins below. Their IDs are already listed in `.obsidian/community-plugins.json`, so Obsidian will prompt you to install them. You'll need to **turn off Restricted Mode** first (Settings → Community plugins → Turn on community plugins).
-
-### Plugins
-
-| Plugin | ID | Purpose |
-|---|---|---|
-| **Admonition** | `obsidian-admonition` | `[!dm]`, `[!read-aloud]`, `[!cite]` callout boxes |
-| **Style Settings** | `obsidian-style-settings` | UI controls for theme/snippet tweaks |
-| **Dice Roller** | `obsidian-dice-roller` | Inline clickable dice — `` `dice: 2d6+3` `` |
-| **Leaflet** | `obsidian-leaflet-plugin` | Interactive pinned maps from image files |
-| **Better Export PDF** | `better-export-pdf` | Header/footer templates, page numbers, H1 page breaks |
-| **Pandoc Plugin** | `obsidian-pandoc` | Export to PDF/DOCX/EPUB via Pandoc (needs Pandoc installed) |
-
-### Print stylesheet
-
-`.obsidian/snippets/dnd-print.css` applies automatically under `@media print` and inside Better Export PDF:
-
-- Parchment background and dark-brown body text
-- Serif headings in deep red (`#58180d`)
-- Page break before each `# H1`
-- Themed callouts for `[!dm]` and `[!read-aloud]`
-
-To disable it: **Settings → Appearance → CSS snippets → dnd-print → toggle off**.
-
----
-
 ## AI agent
 
 `AGENTS.md` contains instructions for the **Campaign Keeper** agent — an AI assistant you attach to this repo (e.g. via Claude Code or a compatible agent client). `CLAUDE.md` is a symlink to it, so Claude Code picks up the same instructions automatically. It knows:
@@ -264,7 +267,7 @@ To disable it: **Settings → Appearance → CSS snippets → dnd-print → togg
 - How to stay canon-first and flag when it's adding DM-invented content
 - Working conventions: stay on `main`, don't commit unless asked, and scope sessions to ~2 hours of table time
 
-`dnd-adventure-generator.md` contains the multi-step workflow the agent follows to generate a new session adventure: scope → outline → images → markdown files → session bible → PDF.
+`dnd-adventure-generator.md` contains the multi-step workflow the agent follows to generate a new session adventure: scope → outline → images → markdown files → campaign guide → PDF.
 
 ### Claude Code on the web
 
