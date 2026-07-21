@@ -1,0 +1,44 @@
+[
+  {
+    "description": "Title Page — The Nimble Nibs in Bellwether Lantern Market",
+    "url": "https://storage.image.mcp.nqs.io/images/aa1c68d8-7b1d-4fec-856e-102ad218ab4a.png",
+    "aspect_ratio": "3:4",
+    "file": "title-page-the-nimble-nibs-bellwether.jpg"
+  },
+  {
+    "description": "Tactical Map — The Crooked Curtain Scramble",
+    "url": "https://storage.image.mcp.nqs.io/images/914ea131-a406-4b42-a2e9-1c7d5799b2c3.png",
+    "aspect_ratio": "3:4",
+    "file": "tactical-map-crooked-curtain-scramble.jpg"
+  },
+  {
+    "description": "Maestro Nibs",
+    "url": "https://storage.image.mcp.nqs.io/images/ddf38dd0-03e0-46db-b49a-211666fd4c63.png",
+    "aspect_ratio": "3:4",
+    "file": "maestro-nibs-portrait.jpg"
+  },
+  {
+    "description": "Sergeant Mina Cobble",
+    "url": "https://storage.image.mcp.nqs.io/images/194918e6-de6e-4a03-a366-99dd3458b15b.png",
+    "aspect_ratio": "3:4",
+    "file": "sergeant-mina-cobble-portrait.jpg"
+  },
+  {
+    "description": "Guildmaster Osric Pindle",
+    "url": "https://storage.image.mcp.nqs.io/images/cca2e12d-a232-4026-ab0d-700253c1413c.png",
+    "aspect_ratio": "3:4",
+    "file": "guildmaster-osric-pindle-portrait.jpg"
+  },
+  {
+    "description": "The Nimble Nibs Troupe",
+    "url": "https://storage.image.mcp.nqs.io/images/a1f5d612-6436-40cb-86b7-582ba8362e5a.png",
+    "aspect_ratio": "16:9",
+    "file": "nimble-nibs-troupe.jpg"
+  },
+  {
+    "description": "Bellwether Festival Stage",
+    "url": "https://storage.image.mcp.nqs.io/images/8eaeb7ed-74ee-4512-9f69-bb6bce517987.png",
+    "aspect_ratio": "16:9",
+    "file": "bellwether-festival-stage.jpg"
+  }
+]
