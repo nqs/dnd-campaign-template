@@ -218,7 +218,7 @@ sessions/session 3/images/images.json
 sessions/session 3/images/<slug>.jpg
 ```
 
-`images/images.json` is a list of `{"url", "description", "aspect_ratio", "file"}` objects — one per image embedded in the markdown files. It lets the renderer size images correctly without re-fetching metadata at build time, and the `file` key points at a git-tracked local jpg so the PDF still builds after the image host URL expires.
+`images/images.json` is a list of `{"url", "description", "prompt", "aspect_ratio", "file"}` objects — one per image embedded in the markdown files. `prompt` is the exact final text submitted to the image provider, retained for faithful regeneration. The manifest lets the renderer size images correctly without re-fetching metadata at build time, and the `file` key points at a git-tracked local jpg so the PDF still builds after the image host URL expires.
 
 ### Building a PDF
 

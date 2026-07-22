@@ -1,11 +1,65 @@
 [
-  {"description":"Title Page — Veyrhaven and the Ashen Grin","url":"images/title-page-veyrhaven-ashen-grin.jpg","aspect_ratio":"16:9","file":"title-page-veyrhaven-ashen-grin.jpg"},
-  {"description":"Mara Vey","url":"images/mara-vey-portrait.jpg","aspect_ratio":"3:4","file":"mara-vey-portrait.jpg"},
-  {"description":"Elian Voss","url":"images/elian-voss-portrait.jpg","aspect_ratio":"3:4","file":"elian-voss-portrait.jpg"},
-  {"description":"Captain Halric Dane","url":"images/halric-dane-portrait.jpg","aspect_ratio":"3:4","file":"halric-dane-portrait.jpg"},
-  {"description":"Vorthax, the Ashen Grin","url":"images/vorthax-ashen-grin.jpg","aspect_ratio":"3:4","file":"vorthax-ashen-grin.jpg"},
-  {"description":"Tactical Map — Mirrors in the Rain","url":"images/tactical-map-mirrors-in-the-rain.jpg","aspect_ratio":"4:3","file":"tactical-map-mirrors-in-the-rain.jpg"},
-  {"description":"Tactical Map — The Hollow Court","url":"images/tactical-map-hollow-court.jpg","aspect_ratio":"4:3","file":"tactical-map-hollow-court.jpg"},
-  {"description":"Tactical Map — The Seventh Ward","url":"images/tactical-map-seventh-ward.jpg","aspect_ratio":"4:3","file":"tactical-map-seventh-ward.jpg"},
-  {"description":"Veyrhaven Storm Street","url":"images/veyrhaven-storm-street.jpg","aspect_ratio":"16:9","file":"veyrhaven-storm-street.jpg"}
+  {
+    "description": "Title Page — Veyrhaven and the Ashen Grin",
+    "prompt": "Wide cinematic dark fantasy illustration of Veyrhaven, an original rain-soaked gothic canal city at night. Black water, steep slate roofs, soot-dark civic spires, greenish gas lamps reflected on wet cobbles, windblown ash, and an eerie ember-like curve within storm clouds. Urban supernatural mystery, painterly tabletop roleplaying sourcebook art, original setting, no characters in foreground, no text, no letters, no labels, no logo, no watermark.",
+    "url": "images/title-page-veyrhaven-ashen-grin.jpg",
+    "aspect_ratio": "16:9",
+    "file": "title-page-veyrhaven-ashen-grin.jpg"
+  },
+  {
+    "description": "Mara Vey",
+    "prompt": "Original dark fantasy portrait of Mara Vey, a formidable middle-aged human undertaker and independent investigator in a rain-black mourning coat, practical leather gloves, silver mourning pin, close-cropped dark hair streaked with gray, intelligent tired eyes, holding a hooded lantern and case notebook. Veyrhaven gothic urban backdrop, dignified and capable, painterly tabletop roleplaying sourcebook art, no text, no logo, no watermark.",
+    "url": "images/mara-vey-portrait.jpg",
+    "aspect_ratio": "3:4",
+    "file": "mara-vey-portrait.jpg"
+  },
+  {
+    "description": "Elian Voss",
+    "prompt": "Original dark fantasy portrait of Elian Voss, a gaunt human civic archivist in his forties, immaculate charcoal clerk robes now rain-spattered, ink-stained fingers, brass archive keys, anxious eyes behind one cracked lens, clutching a sealed municipal ledger. Gothic records hall backdrop, morally compromised official, painterly tabletop roleplaying sourcebook art, no text, no logo, no watermark.",
+    "url": "images/elian-voss-portrait.jpg",
+    "aspect_ratio": "3:4",
+    "file": "elian-voss-portrait.jpg"
+  },
+  {
+    "description": "Captain Halric Dane",
+    "prompt": "Original dark fantasy portrait of Captain Halric Dane, broad-shouldered veteran human watch officer with weathered face, cropped iron-gray beard, dark blue rain cloak over practical plate, tarnished civic badge, one hand near a sheathed sword, steady skeptical expression. Gaslit gothic city watchhouse backdrop, painterly tabletop roleplaying sourcebook art, no text, no logo, no watermark.",
+    "url": "images/halric-dane-portrait.jpg",
+    "aspect_ratio": "3:4",
+    "file": "halric-dane-portrait.jpg"
+  },
+  {
+    "description": "Vorthax, the Ashen Grin",
+    "prompt": "Original dark fantasy supernatural entity called Vorthax, the Ashen Grin: tall inhuman silhouette formed from ash, smoke, scorched ceremonial cloth and cracked obsidian plates; curved ember fissures suggest a strange smile, long elegant hands, crownlike smoke horns, cinders orbiting its body. Ominous and non-graphic, painterly tabletop roleplaying bestiary art, plain smoky background, no people, no text, no logo, no watermark.",
+    "url": "images/vorthax-ashen-grin.jpg",
+    "aspect_ratio": "3:4",
+    "file": "vorthax-ashen-grin.jpg"
+  },
+  {
+    "description": "Tactical Map — Mirrors in the Rain",
+    "prompt": "Top-down orthographic fantasy tactical battle map, abandoned glass-roofed bathhouse courtyard during heavy rain. Rectangular 70 by 50 foot playable area, central reflecting pool, four cracked standing mirrors, covered side galleries, two entrances, scattered stone benches, drain channels and slick tiles. Clear spatial layout, atmospheric dark urban fantasy, no perspective, no people, no creatures, no tokens, no text, no labels, no compass, no watermark, no grid.",
+    "url": "images/tactical-map-mirrors-in-the-rain.jpg",
+    "aspect_ratio": "4:3",
+    "file": "tactical-map-mirrors-in-the-rain.jpg"
+  },
+  {
+    "description": "Tactical Map — The Hollow Court",
+    "prompt": "Top-down orthographic fantasy tactical battle map of a ruined civic tribunal courtyard called the Hollow Court. Rectangular 80 by 60 foot playable area, raised judge dais at north, broken colonnades, hollow stone statues, two side chambers, shattered benches providing cover, stairs descending at south, rain puddles and ash. Clear spatial layout, dark gothic urban fantasy, no perspective, no people, no creatures, no tokens, no text, no labels, no compass, no watermark, no grid.",
+    "url": "images/tactical-map-hollow-court.jpg",
+    "aspect_ratio": "4:3",
+    "file": "tactical-map-hollow-court.jpg"
+  },
+  {
+    "description": "Tactical Map — The Seventh Ward",
+    "prompt": "Top-down orthographic fantasy tactical battle map of an underground ward-engine chamber beneath a gothic city. Large octagonal ritual floor 90 feet across, central brass seal platform, four ash vents, flooded side channels, six support pillars, north and south stair entrances, narrow maintenance ledges and broken machinery. Clear spatial layout for tabletop combat, ominous and non-graphic, no people, no creatures, no tokens, no text, no labels, no compass, no watermark, no grid.",
+    "url": "images/tactical-map-seventh-ward.jpg",
+    "aspect_ratio": "4:3",
+    "file": "tactical-map-seventh-ward.jpg"
+  },
+  {
+    "description": "Veyrhaven Storm Street",
+    "prompt": "Wide cinematic street scene in original gothic canal city Veyrhaven during a violent night storm. Empty narrow cobbled street, black canal beside iron railings, leaning row houses, green gas lamps, shutters in the wind, rain mixed with pale ash, distant watch silhouettes under lanterns, and a subtly warped reflection in a shop window. Dark urban supernatural mystery, painterly tabletop roleplaying sourcebook art, no text, no logo, no watermark.",
+    "url": "images/veyrhaven-storm-street.jpg",
+    "aspect_ratio": "16:9",
+    "file": "veyrhaven-storm-street.jpg"
+  }
 ]
