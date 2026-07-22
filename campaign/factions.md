@@ -75,7 +75,38 @@
 
 ---
 
-## 3. [Faction Name]
+## 3. Hall of Measures and Veyrhaven Civic Watch (DM ADDITION)
+
+**Type:** *Civic bureaucracy and municipal watch force; not an extension of any Talthryn faction.*
+**Alignment:** *Mixed; institutional self-preservation under pressure.*
+**Seat:** *Veyrhaven Hall of Measures / Glassward Watchhouse.*
+**Status:** *Active — divided over the Seventh Ward cover-up.*
+
+### Overview
+The Hall of Measures oversees Veyrhaven’s permits, archives, repairs, and public story. A hidden chain of officials renewed the Seventh Ward containment pact by falsifying preventable deaths; the **Civic Watch** is being ordered to enforce secrecy without being told its full purpose. Captain Halric Dane and archivist Elian Voss are pressure points, not a unified faction.
+
+### Key Contacts (Roster)
+- **Captain Halric Dane** — protects civilians first; needs proof before defying sealed orders. *(DM ADDITION)*
+- **Elian Voss** — holds the ward key and the guilt that comes with it. *(DM ADDITION)*
+- **Mara Vey** — unaffiliated undertaker; keeps the original death certificates. *(DM ADDITION)*
+
+### Goals
+- Contain or end the Seventh Ward breach.
+- Decide whether the city preserves calm through secrecy or witnesses through disclosure.
+- Prevent Vorthax from obtaining a new public denial.
+
+### Tensions
+Hall officials can make Voss a scapegoat and remove Dane if the evidence remains private. Mara’s copies make a clean cover-up impossible unless the party chooses to suppress them.
+
+> [!TIP]
+> **Adventure Hooks**
+> - A Watch cordon hides a hazard that officials refuse to name.
+> - The archive has erased the paperwork for an infrastructure project that still kills people.
+> - A civic pact is vulnerable only when someone states the truth in public.
+
+---
+
+## 4. [Faction Name]
 
 **Type:**
 **Alignment:**

@@ -75,6 +75,12 @@
 
 ## DM Additions
 
+
+### Veyrhaven (DM ADDITION)
+Session 003 (standalone). A rain-soaked gothic canal city whose Glassward district is built above an older civic ward-engine. Veyrhaven is intentionally disconnected from Talthryn’s active succession conflict. Its public institutions—the Hall of Measures, Civic Watch, Central Archive, Glassward Baths, Hollow Court, and Seventh Ward—are all original campaign additions.
+
+### Glassward and the Seventh Ward (DM ADDITION)
+Session 003 (standalone). The bathhouse-and-canal district of Veyrhaven sits over a sealed containment engine beneath the old storm drains. The **Hollow Court** is its buried tribunal access point; the **Seventh Ward** is the octagonal engine chamber below it. The route is a local civic secret rather than a map connection to any established campaign location.
 *[New locations, dungeon sites, or regional details invented for this campaign that aren't in the sourcebooks. Tag each `(DM ADDITION)` and note the session it was introduced.]*
 
 <!-- Example:
